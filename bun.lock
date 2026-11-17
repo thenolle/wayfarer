@@ -4,6 +4,18 @@
   "workspaces": {
     "": {
       "name": "wayfarer",
+      "dependencies": {
+        "@gambrel/browser": "^0.2.3",
+        "@gambrel/bun": "^0.2.3",
+        "@gambrel/compiler": "^0.2.3",
+        "@gambrel/components": "^0.2.3",
+        "@gambrel/core": "^0.2.3",
+        "@gambrel/icons": "^0.2.3",
+        "@gambrel/reactivity": "^0.2.3",
+        "@gambrel/router": "^0.2.3",
+        "@gambrel/ssr": "^0.2.3",
+        "@gambrel/view": "^0.2.3",
+      },
       "devDependencies": {
         "@types/bun": "^1.4.4",
         "typescript": "^7.0.2",
@@ -11,6 +23,26 @@
     },
   },
   "packages": {
+    "@gambrel/browser": ["@gambrel/browser@0.2.3", "", { "dependencies": { "@gambrel/reactivity": "^0.2.3", "@gambrel/router": "^0.2.3", "@gambrel/view": "^0.2.3" } }, "sha512-2A50L4I39zgJjXsWqiNxZyEneBflhZA3uJTQ0OSExs7sL00FGsIes2gBME699epI4KZ30gWZel6b1ipQJySc3g=="],
+
+    "@gambrel/bun": ["@gambrel/bun@0.2.3", "", { "dependencies": { "@gambrel/core": "^0.2.3" } }, "sha512-TjSrMgxqVt9tGXtG3bwO7cmAoE5q/cBz4HaSkmzcK2nHKI0aFxJ6pDUkXjIqcowG7d932kP7xdnuANv+Je4v2w=="],
+
+    "@gambrel/compiler": ["@gambrel/compiler@0.2.3", "", { "dependencies": { "@gambrel/router": "^0.2.3" } }, "sha512-3Zo1Rh1447rETcqgZM9apWnyC3Q+ElS3VvJWjnf6jwyE4p2m1a8hiK5Io8bSOI9r9cKrwYgelnqEgokrS1cjEQ=="],
+
+    "@gambrel/components": ["@gambrel/components@0.2.3", "", { "dependencies": { "@gambrel/icons": "^0.2.3", "@gambrel/reactivity": "^0.2.3", "@gambrel/view": "^0.2.3" } }, "sha512-5bzwdYWaLy9bxYzgGglMbVx3jKRmP9lrBp5UqGnB1vhPeEq23iQMpH0nolDSbTE1k7sKZaC25bEmUQnSmQXNKg=="],
+
+    "@gambrel/core": ["@gambrel/core@0.2.3", "", {}, "sha512-Ak1Rqs1XUSWHesogCA+x8+ectj7qCgRYgkujcJ1XEJUGHStSDOpsobBmFShXWljsS0SdtV+YYqtkdFGTf0PBTQ=="],
+
+    "@gambrel/icons": ["@gambrel/icons@0.2.3", "", { "dependencies": { "@gambrel/view": "^0.2.3" } }, "sha512-K1nWuIcor7ALr7uDDTi2y/uxtbOMhjSdQzMY2F3viTiXZcdMYSxqk2Nju3nEkWPTg/9k/Acv6LbXz5iCeApAmQ=="],
+
+    "@gambrel/reactivity": ["@gambrel/reactivity@0.2.3", "", {}, "sha512-/Jc1ds6zSLlH3S1ihFHOg3bWwCiV+BNFQNcOVlxLCnumbZ4o0B51WGzgbO/kI030ZS7peysaYsvr6EPTK5cQKA=="],
+
+    "@gambrel/router": ["@gambrel/router@0.2.3", "", { "dependencies": { "@gambrel/view": "^0.2.3" } }, "sha512-j1ibfcuUZ32ZXkLwjr377Xu41peylQWcrOXbQmH6hCiu88soAAFIjKjpAl01v4mmiTjY1V9DKGpOoI4/RUUbYw=="],
+
+    "@gambrel/ssr": ["@gambrel/ssr@0.2.3", "", { "dependencies": { "@gambrel/router": "^0.2.3", "@gambrel/view": "^0.2.3" } }, "sha512-rRwK215oXUrmzSGBzxWCIYTBeDMuWFeeEcCKt40jD6Zf8F1b5eQonWwpZ/7ALOqX05qxuAmtHUdaI+wPGH6hTQ=="],
+
+    "@gambrel/view": ["@gambrel/view@0.2.3", "", {}, "sha512-rHVA5+68NNyuPk4YwCLoYuRDdWjXmovzaBxPHnbQwbzVrmJ8Y4Mw+38DvWIydDtxRZt8KU6I5gmqzNtBIvCGXQ=="],
+
     "@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@types/node": ["@types/node@26.6.6", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-MzQj+8Kx3XI40OmUAE6Qoh58ZMNstNNMwn2nfd3qWsfe7nDNSqJNzes4njhz6AHwrSHOffSLwXU6yb474Q4aog=="],

@@ -12,4 +12,3 @@
 *.otf binary
 *.sqlite binary
 *.sqlite3 binary
-*.db binary
