@@ -28,8 +28,10 @@ Available today:
   every redirect is checked.
 - Crash recovery and graceful shutdown that keep progress consistent with the
   files on disk.
+- A JSON REST API with bearer-token authentication, host and origin checks,
+  and file streaming with byte ranges. See [docs/api/rest.md](docs/api/rest.md).
 
-Not yet available: the HTTP API and the web dashboard.
+Not yet available: the web dashboard and live WebSocket updates.
 
 See [docs/architecture/lifecycle.md](docs/architecture/lifecycle.md) and
 [docs/architecture/resolvers-and-networking.md](docs/architecture/resolvers-and-networking.md)
@@ -55,24 +57,25 @@ bun run check
 
 All settings are environment variables. Defaults are chosen to be safe.
 
-| Variable                            | Default                      | Description                                                      |
-| ----------------------------------- | ---------------------------- | ---------------------------------------------------------------- |
-| `WAYFARER_HOST`                     | `127.0.0.1`                  | Bind address. Non-loopback addresses require an auth token.      |
-| `WAYFARER_PORT`                     | `8787`                       | Listening port.                                                  |
-| `WAYFARER_AUTH_TOKEN`               | unset                        | Shared secret. Required (16+ characters) for non-loopback hosts. |
-| `WAYFARER_DATA_DIRECTORY`           | `./data`                     | Database and state directory.                                    |
-| `WAYFARER_DOWNLOAD_DIRECTORY`       | `<data directory>/downloads` | Destination for completed files.                                 |
-| `WAYFARER_MAX_SEGMENTS`             | `8`                          | Parallel segments per download (1–64).                           |
-| `WAYFARER_MAX_CONCURRENT_DOWNLOADS` | `3`                          | Downloads running at once (1–64).                                |
-| `WAYFARER_MAX_CONCURRENT_SEGMENTS`  | `16`                         | Segments running at once across all downloads (1–256).           |
-| `WAYFARER_BANDWIDTH_LIMIT`          | `0`                          | Global limit in bytes per second. `0` means unlimited.           |
-| `WAYFARER_RETRY_MAX_ATTEMPTS`       | `5`                          | Attempts before a transient failure becomes permanent.           |
-| `WAYFARER_RETRY_BASE_DELAY_MS`      | `500`                        | Initial backoff delay.                                           |
-| `WAYFARER_RETRY_MAX_DELAY_MS`       | `30000`                      | Backoff ceiling.                                                 |
-| `WAYFARER_RETRY_JITTER`             | `0.2`                        | Random jitter ratio, 0 to 1.                                     |
-| `WAYFARER_REQUEST_TIMEOUT_MS`       | `30000`                      | Per-request timeout.                                             |
-| `WAYFARER_PERSIST_INTERVAL_MS`      | `250`                        | Progress batching interval for SQLite writes.                    |
-| `WAYFARER_ALLOW_PRIVATE_NETWORKS`   | empty                        | Comma-separated trusted private hosts or ranges.                 |
+| Variable                            | Default                      | Description                                                                             |
+| ----------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------- |
+| `WAYFARER_HOST`                     | `127.0.0.1`                  | Bind address. Non-loopback addresses require an auth token.                             |
+| `WAYFARER_PORT`                     | `8787`                       | Listening port.                                                                         |
+| `WAYFARER_AUTH_TOKEN`               | unset                        | Shared secret. Required (16+ characters) for non-loopback hosts.                        |
+| `WAYFARER_ALLOWED_HOSTS`            | empty                        | Extra `Host` names (without ports) the API answers to. Required for `0.0.0.0` and `::`. |
+| `WAYFARER_DATA_DIRECTORY`           | `./data`                     | Database and state directory.                                                           |
+| `WAYFARER_DOWNLOAD_DIRECTORY`       | `<data directory>/downloads` | Destination for completed files.                                                        |
+| `WAYFARER_MAX_SEGMENTS`             | `8`                          | Parallel segments per download (1–64).                                                  |
+| `WAYFARER_MAX_CONCURRENT_DOWNLOADS` | `3`                          | Downloads running at once (1–64).                                                       |
+| `WAYFARER_MAX_CONCURRENT_SEGMENTS`  | `16`                         | Segments running at once across all downloads (1–256).                                  |
+| `WAYFARER_BANDWIDTH_LIMIT`          | `0`                          | Global limit in bytes per second. `0` means unlimited.                                  |
+| `WAYFARER_RETRY_MAX_ATTEMPTS`       | `5`                          | Attempts before a transient failure becomes permanent.                                  |
+| `WAYFARER_RETRY_BASE_DELAY_MS`      | `500`                        | Initial backoff delay.                                                                  |
+| `WAYFARER_RETRY_MAX_DELAY_MS`       | `30000`                      | Backoff ceiling.                                                                        |
+| `WAYFARER_RETRY_JITTER`             | `0.2`                        | Random jitter ratio, 0 to 1.                                                            |
+| `WAYFARER_REQUEST_TIMEOUT_MS`       | `30000`                      | Per-request timeout.                                                                    |
+| `WAYFARER_PERSIST_INTERVAL_MS`      | `250`                        | Progress batching interval for SQLite writes.                                           |
+| `WAYFARER_ALLOW_PRIVATE_NETWORKS`   | empty                        | Comma-separated trusted private hosts or ranges.                                        |
 
 ## Architecture
 
