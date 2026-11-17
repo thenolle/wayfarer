@@ -20,17 +20,20 @@ Available today:
 - A download engine with parallel byte-range segments, single-stream
   fallback, retries with backoff, ETag and Last-Modified validation, optional
   SHA-256 verification and no-overwrite finalisation.
+- A priority scheduler with download and segment concurrency limits, pause,
+  resume, cancel and remove, and a global bandwidth limiter.
 - URL resolvers for direct links and Buzzheavier, with a registry for adding
   more.
 - Network safety: private and reserved addresses are refused by default, and
   every redirect is checked.
-- Crash recovery that reconciles saved progress with the files on disk.
+- Crash recovery and graceful shutdown that keep progress consistent with the
+  files on disk.
 
-Not yet available: scheduling, pause and resume controls, bandwidth limiting,
-the HTTP API and the web dashboard.
+Not yet available: the HTTP API and the web dashboard.
 
-See [docs/architecture/resolvers-and-networking.md](docs/architecture/resolvers-and-networking.md)
-for resolver and network-safety details.
+See [docs/architecture/lifecycle.md](docs/architecture/lifecycle.md) and
+[docs/architecture/resolvers-and-networking.md](docs/architecture/resolvers-and-networking.md)
+for details.
 
 ## Requirements
 
@@ -52,24 +55,24 @@ bun run check
 
 All settings are environment variables. Defaults are chosen to be safe.
 
-| Variable                            | Default                | Description                                                      |
-| ----------------------------------- | ---------------------- | ---------------------------------------------------------------- |
-| `WAYFARER_HOST`                     | `127.0.0.1`            | Bind address. Non-loopback addresses require an auth token.      |
-| `WAYFARER_PORT`                     | `8787`                 | Listening port.                                                  |
-| `WAYFARER_AUTH_TOKEN`               | unset                  | Shared secret. Required (16+ characters) for non-loopback hosts. |
-| `WAYFARER_DATA_DIR`                 | `./data`               | Database and state directory.                                    |
-| `WAYFARER_DOWNLOAD_DIR`             | `<data dir>/downloads` | Destination for completed files.                                 |
-| `WAYFARER_MAX_SEGMENTS`             | `8`                    | Parallel segments per download (1–64).                           |
-| `WAYFARER_MAX_CONCURRENT_DOWNLOADS` | `3`                    | Downloads running at once (1–64).                                |
-| `WAYFARER_MAX_CONCURRENT_SEGMENTS`  | `16`                   | Segments running at once across all downloads (1–256).           |
-| `WAYFARER_BANDWIDTH_LIMIT`          | `0`                    | Global limit in bytes per second. `0` means unlimited.           |
-| `WAYFARER_RETRY_MAX_ATTEMPTS`       | `5`                    | Attempts before a transient failure becomes permanent.           |
-| `WAYFARER_RETRY_BASE_DELAY_MS`      | `500`                  | Initial backoff delay.                                           |
-| `WAYFARER_RETRY_MAX_DELAY_MS`       | `30000`                | Backoff ceiling.                                                 |
-| `WAYFARER_RETRY_JITTER`             | `0.2`                  | Random jitter ratio, 0 to 1.                                     |
-| `WAYFARER_REQUEST_TIMEOUT_MS`       | `30000`                | Per-request timeout.                                             |
-| `WAYFARER_PERSIST_INTERVAL_MS`      | `250`                  | Progress batching interval for SQLite writes.                    |
-| `WAYFARER_ALLOW_PRIVATE_NETWORKS`   | empty                  | Comma-separated trusted private hosts or ranges.                 |
+| Variable                            | Default                      | Description                                                      |
+| ----------------------------------- | ---------------------------- | ---------------------------------------------------------------- |
+| `WAYFARER_HOST`                     | `127.0.0.1`                  | Bind address. Non-loopback addresses require an auth token.      |
+| `WAYFARER_PORT`                     | `8787`                       | Listening port.                                                  |
+| `WAYFARER_AUTH_TOKEN`               | unset                        | Shared secret. Required (16+ characters) for non-loopback hosts. |
+| `WAYFARER_DATA_DIRECTORY`           | `./data`                     | Database and state directory.                                    |
+| `WAYFARER_DOWNLOAD_DIRECTORY`       | `<data directory>/downloads` | Destination for completed files.                                 |
+| `WAYFARER_MAX_SEGMENTS`             | `8`                          | Parallel segments per download (1–64).                           |
+| `WAYFARER_MAX_CONCURRENT_DOWNLOADS` | `3`                          | Downloads running at once (1–64).                                |
+| `WAYFARER_MAX_CONCURRENT_SEGMENTS`  | `16`                         | Segments running at once across all downloads (1–256).           |
+| `WAYFARER_BANDWIDTH_LIMIT`          | `0`                          | Global limit in bytes per second. `0` means unlimited.           |
+| `WAYFARER_RETRY_MAX_ATTEMPTS`       | `5`                          | Attempts before a transient failure becomes permanent.           |
+| `WAYFARER_RETRY_BASE_DELAY_MS`      | `500`                        | Initial backoff delay.                                           |
+| `WAYFARER_RETRY_MAX_DELAY_MS`       | `30000`                      | Backoff ceiling.                                                 |
+| `WAYFARER_RETRY_JITTER`             | `0.2`                        | Random jitter ratio, 0 to 1.                                     |
+| `WAYFARER_REQUEST_TIMEOUT_MS`       | `30000`                      | Per-request timeout.                                             |
+| `WAYFARER_PERSIST_INTERVAL_MS`      | `250`                        | Progress batching interval for SQLite writes.                    |
+| `WAYFARER_ALLOW_PRIVATE_NETWORKS`   | empty                        | Comma-separated trusted private hosts or ranges.                 |
 
 ## Architecture
 

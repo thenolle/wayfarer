@@ -6,6 +6,8 @@ import { PART_SUFFIX } from './paths'
 const MAX_ATTEMPTS = 10_000
 const MAX_EXTENSION_LENGTH = 16
 
+let lockTail: Promise<void> = Promise.resolve()
+
 /**
  * Splits a filename into stem and extension. Compound `.tar.*` extensions stay
  * together so `backup.tar.gz` becomes `backup (1).tar.gz`.
@@ -53,4 +55,18 @@ export async function allocateDestination(directory: string, filename: string, r
 		if (!taken.has(key) && !taken.has(`${key}${PART_SUFFIX}`)) return join(directory, candidate)
 	}
 	throw new Error('No free filename could be found in the download directory')
+}
+
+/**
+ * Runs `work` while holding the process-wide destination lock.
+ *
+ * Choosing a destination and saving it must happen as one step, otherwise two
+ * downloads can pick the same free name. Everything that allocates a
+ * destination and records it takes this lock. A failure in `work` is passed on
+ * to the caller and does not block later callers.
+ */
+export function withDestinationLock<T>(work: () => Promise<T>): Promise<T> {
+	const result = lockTail.then(work)
+	lockTail = result.then(() => undefined, () => undefined)
+	return result
 }

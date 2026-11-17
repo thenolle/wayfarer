@@ -3,7 +3,7 @@ import { basename, dirname } from 'node:path'
 import type { AppConfig, RetryPolicy } from '../../config/config'
 import type { DownloadsRepository } from '../../database/downloads-repository'
 import type { SegmentsRepository } from '../../database/segments-repository'
-import { allocateDestination } from '../../filesystem/destination'
+import { allocateDestination, withDestinationLock } from '../../filesystem/destination'
 import { DestinationExistsError } from '../../filesystem/errors'
 import { sanitizeFilename } from '../../filesystem/filename'
 import { finalizePartFile } from '../../filesystem/finalize'
@@ -15,6 +15,7 @@ import { BlockedDestinationError, ChecksumMismatchError, HttpStatusError, Incomp
 import type { GuardedFetch } from '../http/guarded-fetch'
 import type { ResolverRegistry } from '../resolvers/registry'
 import type { ResolverContext } from '../resolvers/types'
+import type { Semaphore } from '../scheduler/semaphore'
 import { coversExactly, durableBytes, isSegmentComplete, planSegments } from '../segments/plan'
 import { hashFile } from '../verification/sha256'
 import { PartFile } from './part-file'
@@ -50,6 +51,8 @@ export interface EngineDependencies {
 	readonly resolvers: ResolverRegistry
 	readonly fetch: GuardedFetch
 	readonly throttle?: Throttle
+	/** Limits how many segments transfer at once across all downloads. */
+	readonly segmentGate?: Semaphore
 }
 
 /**
@@ -217,7 +220,8 @@ export class DownloadEngine {
 		const outcome: { failed: boolean; error: unknown } = { failed: false, error: undefined }
 		await Promise.all(rows.filter((row) => !isSegmentComplete(row)).map(async (segment) => {
 			try {
-				await downloadSegment(segment, context)
+				const release = await (this.deps.segmentGate?.acquire(context.signal) ?? Promise.resolve((): void => undefined))
+				try { await downloadSegment(segment, context) } finally { release() }
 			} catch (error) {
 				if (!outcome.failed) {
 					outcome.failed = true
@@ -253,10 +257,16 @@ export class DownloadEngine {
 			return record.destination
 		} catch (error) {
 			if (!(error instanceof DestinationExistsError)) throw error
-			const reserved = this.reservedDestinations(record.id)
-			const destination = await allocateDestination(dirname(record.destination), basename(record.destination), reserved)
-			await finalizePartFile(partPath, destination)
-			return destination
+			return withDestinationLock(async () => {
+				const destination = await allocateDestination(
+					dirname(record.destination),
+					basename(record.destination),
+					this.reservedDestinations(record.id)
+				)
+				await finalizePartFile(partPath, destination)
+				this.deps.downloads.update(record.id, { filename: basename(destination), destination })
+				return destination
+			})
 		}
 	}
 
@@ -264,10 +274,12 @@ export class DownloadEngine {
 		if (serverName === null) return record
 		const name = sanitizeFilename(serverName)
 		if (name === record.filename) return record
-		const destination = await allocateDestination(dirname(record.destination), name, this.reservedDestinations(record.id))
-		if (destination === record.destination) return record
-		await rm(partPathFor(record.destination), { force: true })
-		return this.deps.downloads.update(record.id, { filename: basename(destination), destination })
+		return withDestinationLock(async () => {
+			const destination = await allocateDestination(dirname(record.destination), name, this.reservedDestinations(record.id))
+			if (destination === record.destination) return record
+			await rm(partPathFor(record.destination), { force: true })
+			return this.deps.downloads.update(record.id, { filename: basename(destination), destination })
+		})
 	}
 
 	private reservedDestinations(excludeId: string): string[] {

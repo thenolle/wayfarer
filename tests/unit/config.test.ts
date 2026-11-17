@@ -8,7 +8,7 @@ describe('loadConfig', () => {
 		expect(config.host).toBe('127.0.0.1')
 		expect(config.maxSegments).toBe(8)
 		expect(config.authToken).toBeNull()
-		expect(config.databasePath).toBe(join(config.dataDir, 'wayfarer.sqlite'))
+		expect(config.databasePath).toBe(join(config.dataDirectory, 'wayfarer.sqlite'))
 	})
 
 	test('requires a token on non-loopback hosts', () => {
