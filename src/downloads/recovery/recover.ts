@@ -1,8 +1,8 @@
-import { rm, stat } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
 import type { DownloadsRepository } from '../../database/downloads-repository'
 import type { SegmentsRepository } from '../../database/segments-repository'
-import { isErrnoException } from '../../filesystem/errors'
 import { partPathFor } from '../../filesystem/paths'
+import { fileSize } from '../../filesystem/stat'
 import { ACTIVE_STATUSES } from '../domain/status'
 import { planRecovery } from './plan'
 import type { RestartReason } from './plan'
@@ -11,15 +11,6 @@ export interface RecoveryReport {
 	readonly resumed: readonly string[]
 	readonly toVerify: readonly string[]
 	readonly restarted: readonly { readonly id: string; readonly reason: RestartReason }[]
-}
-
-async function partFileSize(path: string): Promise<number | null> {
-	try {
-		return (await stat(path)).size
-	} catch (error) {
-		if (isErrnoException(error) && error.code === 'ENOENT') return null
-		throw error
-	}
 }
 
 /**
@@ -37,7 +28,7 @@ export async function recoverInterruptedDownloads(downloads: DownloadsRepository
 	const restarted: { id: string; reason: RestartReason }[] = []
 	for (const download of downloads.listByStatuses(ACTIVE_STATUSES)) {
 		const partPath = partPathFor(download.destination)
-		const plan = planRecovery({ download, segments: segments.list(download.id), partFileSize: await partFileSize(partPath) })
+		const plan = planRecovery({ download, segments: segments.list(download.id), partFileSize: await fileSize(partPath) })
 		if (plan.action === 'restart') {
 			await rm(partPath, { force: true })
 			segments.deleteFor(download.id)

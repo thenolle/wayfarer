@@ -17,13 +17,20 @@ Available today:
 - Environment-based configuration with secure defaults.
 - A download state machine and a SQLite schema (WAL mode, foreign keys,
   versioned migrations).
-- Repositories for downloads, segments and settings.
-- Filename sanitisation, collision-free destination allocation and
-  no-overwrite finalisation.
-- Segment planning and interrupted-download recovery rules.
+- A download engine with parallel byte-range segments, single-stream
+  fallback, retries with backoff, ETag and Last-Modified validation, optional
+  SHA-256 verification and no-overwrite finalisation.
+- URL resolvers for direct links and Buzzheavier, with a registry for adding
+  more.
+- Network safety: private and reserved addresses are refused by default, and
+  every redirect is checked.
+- Crash recovery that reconciles saved progress with the files on disk.
 
-Not yet available: the download engine, URL resolvers, scheduling, the HTTP
-API and the web dashboard.
+Not yet available: scheduling, pause and resume controls, bandwidth limiting,
+the HTTP API and the web dashboard.
+
+See [docs/architecture/resolvers-and-networking.md](docs/architecture/resolvers-and-networking.md)
+for resolver and network-safety details.
 
 ## Requirements
 
