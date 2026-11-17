@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { join } from 'node:path'
 import { ConfigError, loadConfig } from '../../src/config/config'
 
 describe('loadConfig', () => {
@@ -7,7 +8,7 @@ describe('loadConfig', () => {
 		expect(config.host).toBe('127.0.0.1')
 		expect(config.maxSegments).toBe(8)
 		expect(config.authToken).toBeNull()
-		expect(config.databasePath.endsWith('wayfarer.db')).toBe(true)
+		expect(config.databasePath).toBe(join(config.dataDir, 'wayfarer.sqlite'))
 	})
 
 	test('requires a token on non-loopback hosts', () => {
