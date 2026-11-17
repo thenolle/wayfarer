@@ -28,8 +28,8 @@ export interface AppConfig {
 	readonly host: string
 	readonly port: number
 	readonly authToken: string | null
-	readonly dataDir: string
-	readonly downloadDir: string
+	readonly dataDirectory: string
+	readonly downloadDirectory: string
 	readonly databasePath: string
 	readonly maxSegments: number
 	readonly maxConcurrentDownloads: number
@@ -92,8 +92,8 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 	const authToken = readString(env, 'WAYFARER_AUTH_TOKEN')
 	if (authToken !== null && authToken.length < MIN_AUTH_TOKEN_LENGTH) throw new ConfigError(`WAYFARER_AUTH_TOKEN must be at least ${MIN_AUTH_TOKEN_LENGTH} characters`)
 	if (!isLoopbackHost(host) && authToken === null) throw new ConfigError('WAYFARER_AUTH_TOKEN is required when WAYFARER_HOST is not a loopback address')
-	const dataDir = resolve(readString(env, 'WAYFARER_DATA_DIR') ?? './data')
-	const downloadDir = resolve(readString(env, 'WAYFARER_DOWNLOAD_DIR') ?? join(dataDir, 'downloads'))
+	const dataDir = resolve(readString(env, 'WAYFARER_DATA_DIRECTORY') ?? './data')
+	const downloadDir = resolve(readString(env, 'WAYFARER_DOWNLOAD_DIRECTORY') ?? join(dataDir, 'downloads'))
 	const baseDelayMs = readInteger(env, 'WAYFARER_RETRY_BASE_DELAY_MS', 500, 1, 3_600_000)
 	const maxDelayMs = readInteger(env, 'WAYFARER_RETRY_MAX_DELAY_MS', 30_000, 1, 3_600_000)
 	if (maxDelayMs < baseDelayMs) throw new ConfigError('WAYFARER_RETRY_MAX_DELAY_MS must not be smaller than WAYFARER_RETRY_BASE_DELAY_MS')
@@ -101,8 +101,8 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 		host,
 		port: readInteger(env, 'WAYFARER_PORT', 8787, 0, 65_535),
 		authToken,
-		dataDir,
-		downloadDir,
+		dataDirectory: dataDir,
+		downloadDirectory: downloadDir,
 		databasePath: join(dataDir, 'wayfarer.sqlite'),
 		maxSegments: readInteger(env, 'WAYFARER_MAX_SEGMENTS', 8, 1, 64),
 		maxConcurrentDownloads: readInteger(env, 'WAYFARER_MAX_CONCURRENT_DOWNLOADS', 3, 1, 64),
