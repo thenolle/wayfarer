@@ -1,14 +1,23 @@
 import { installShutdownHandlers } from './app/lifecycle'
 import { createRuntime } from './app/runtime'
 import { ConfigError, loadConfig } from './config/config'
+import { createHttpApp } from './http/app'
+import { startServer } from './server/server'
+import type { RunningServer } from './server/server'
 
 async function main(): Promise<void> {
 	const config = loadConfig()
 	const runtime = await createRuntime(config)
-	installShutdownHandlers(runtime)
+	let server: RunningServer | null = null
+	installShutdownHandlers({
+		async shutdown() {
+			await server?.stop()
+			await runtime.shutdown()
+		}
+	})
 	const report = await runtime.start()
-	console.log(`[wayfarer] started: ${report.resumed.length} resumed, ${report.toVerify.length} to verify, ${report.restarted.length} restarted`)
-	setInterval(() => undefined, 2_147_483_647)
+	server = startServer(createHttpApp(runtime), { hostname: config.host, port: config.port })
+	console.log(`[wayfarer] listening on ${server.url.href} (${report.resumed.length} resumed, ${report.toVerify.length} to verify, ${report.restarted.length} restarted)`)
 }
 
 main().catch((error: unknown) => {

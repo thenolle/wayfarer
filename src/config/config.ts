@@ -1,5 +1,7 @@
 import { join, resolve } from 'node:path'
 
+const WILDCARD_HOSTS = new Set(['0.0.0.0', '::', '[::]'])
+
 /**
  * Raised when an environment variable is missing, malformed or unsafe.
  */
@@ -28,6 +30,7 @@ export interface AppConfig {
 	readonly host: string
 	readonly port: number
 	readonly authToken: string | null
+	readonly allowedHosts: readonly string[]
 	readonly dataDirectory: string
 	readonly downloadDirectory: string
 	readonly databasePath: string
@@ -50,6 +53,13 @@ const MIN_AUTH_TOKEN_LENGTH = 16
 export function isLoopbackHost(host: string): boolean {
 	const normalized = host.trim().toLowerCase()
 	return LOOPBACK_HOSTNAMES.has(normalized) || /^127(\.\d{1,3}){3}$/.test(normalized)
+}
+
+/**
+ * Returns true when `host` listens on every network interface.
+ */
+export function isWildcardHost(host: string): boolean {
+	return WILDCARD_HOSTS.has(host.trim().toLowerCase())
 }
 
 function readString(env: Environment, name: string): string | null {
@@ -92,6 +102,8 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 	const authToken = readString(env, 'WAYFARER_AUTH_TOKEN')
 	if (authToken !== null && authToken.length < MIN_AUTH_TOKEN_LENGTH) throw new ConfigError(`WAYFARER_AUTH_TOKEN must be at least ${MIN_AUTH_TOKEN_LENGTH} characters`)
 	if (!isLoopbackHost(host) && authToken === null) throw new ConfigError('WAYFARER_AUTH_TOKEN is required when WAYFARER_HOST is not a loopback address')
+	const allowedHosts = readList(env, 'WAYFARER_ALLOWED_HOSTS').map((entry) => entry.toLowerCase())
+	if (isWildcardHost(host) && allowedHosts.length === 0) throw new ConfigError('WAYFARER_ALLOWED_HOSTS is required when WAYFARER_HOST is a wildcard address')
 	const dataDir = resolve(readString(env, 'WAYFARER_DATA_DIRECTORY') ?? './data')
 	const downloadDir = resolve(readString(env, 'WAYFARER_DOWNLOAD_DIRECTORY') ?? join(dataDir, 'downloads'))
 	const baseDelayMs = readInteger(env, 'WAYFARER_RETRY_BASE_DELAY_MS', 500, 1, 3_600_000)
@@ -101,6 +113,7 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 		host,
 		port: readInteger(env, 'WAYFARER_PORT', 8787, 0, 65_535),
 		authToken,
+		allowedHosts,
 		dataDirectory: dataDir,
 		downloadDirectory: downloadDir,
 		databasePath: join(dataDir, 'wayfarer.sqlite'),

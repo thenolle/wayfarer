@@ -8,12 +8,21 @@ describe('loadConfig', () => {
 		expect(config.host).toBe('127.0.0.1')
 		expect(config.maxSegments).toBe(8)
 		expect(config.authToken).toBeNull()
+		expect(config.allowedHosts).toEqual([])
 		expect(config.databasePath).toBe(join(config.dataDirectory, 'wayfarer.sqlite'))
 	})
 
 	test('requires a token on non-loopback hosts', () => {
-		expect(() => loadConfig({ WAYFARER_HOST: '0.0.0.0' })).toThrow(ConfigError)
-		expect(loadConfig({ WAYFARER_HOST: '0.0.0.0', WAYFARER_AUTH_TOKEN: 'x'.repeat(16) }).host).toBe('0.0.0.0')
+		expect(() => loadConfig({ WAYFARER_HOST: '192.168.1.5' })).toThrow(ConfigError)
+		expect(loadConfig({ WAYFARER_HOST: '192.168.1.5', WAYFARER_AUTH_TOKEN: 'x'.repeat(16) }).host).toBe('192.168.1.5')
+	})
+
+	test('requires allowed host names for wildcard addresses', () => {
+		const token = 'x'.repeat(16)
+		expect(() => loadConfig({ WAYFARER_HOST: '0.0.0.0', WAYFARER_AUTH_TOKEN: token })).toThrow(ConfigError)
+		expect(() => loadConfig({ WAYFARER_HOST: '::', WAYFARER_AUTH_TOKEN: token })).toThrow(ConfigError)
+		const config = loadConfig({ WAYFARER_HOST: '0.0.0.0', WAYFARER_AUTH_TOKEN: token, WAYFARER_ALLOWED_HOSTS: 'Downloads.Example.com, nas.local' })
+		expect(config.allowedHosts).toEqual(['downloads.example.com', 'nas.local'])
 	})
 
 	test('rejects short tokens and out-of-range numbers', () => {

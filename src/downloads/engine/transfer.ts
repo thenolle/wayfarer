@@ -44,19 +44,19 @@ export function validatorFor(etag: string | null, lastModified: string | null): 
 	return etag !== null && !etag.startsWith('W/') ? etag : lastModified
 }
 
-async function pump(response: Response, abort: () => void, ctx: TransferContext, startPosition: number, limit: number | null, overshoot: () => Error, onChunk: (position: number, length: number) => void): Promise<number> {
+async function pump(response: Response, abort: () => void, context: TransferContext, startPosition: number, limit: number | null, overshoot: () => Error, onChunk: (position: number, length: number) => void): Promise<number> {
 	const reader = response.body?.getReader()
 	if (reader === undefined) throw new IncompleteResponseError()
 	let position = startPosition
 	try {
 		for (; ;) {
-			const result = await readWithIdleTimeout(reader, ctx.idleTimeoutMs, abort)
+			const result = await readWithIdleTimeout(reader, context.idleTimeoutMs, abort)
 			if (result.done) break
 			const chunk = result.value
 			if (chunk.length === 0) continue
 			if (limit !== null && position + chunk.length > limit) throw overshoot()
-			await ctx.throttle(chunk.length, ctx.signal)
-			await ctx.file.writeAt(chunk, position)
+			await context.throttle(chunk.length, context.signal)
+			await context.file.writeAt(chunk, position)
 			position += chunk.length
 			onChunk(position, chunk.length)
 		}
@@ -66,16 +66,16 @@ async function pump(response: Response, abort: () => void, ctx: TransferContext,
 	return position
 }
 
-function validateSegmentResponse(response: Response, start: number, end: number, ctx: SegmentTransferContext): void {
+function validateSegmentResponse(response: Response, start: number, end: number, context: SegmentTransferContext): void {
 	if (response.status === 416) throw new RemoteChangedError()
-	if (response.status === 200 && ctx.validator !== null) throw new RemoteChangedError()
+	if (response.status === 200 && context.validator !== null) throw new RemoteChangedError()
 	if (response.status !== 206) {
 		assertOk(response)
 		throw new InvalidRangeResponseError()
 	}
 	const range = parseContentRange(response.headers.get('content-range'))
 	if (range === null || range.start !== start || range.end !== end) throw new InvalidRangeResponseError()
-	if (range.total !== null && range.total !== ctx.totalBytes) throw new RemoteChangedError()
+	if (range.total !== null && range.total !== context.totalBytes) throw new RemoteChangedError()
 }
 
 /**
@@ -90,24 +90,24 @@ function validateSegmentResponse(response: Response, start: number, end: number,
  * @throws {RemoteChangedError} when the server's file no longer matches.
  * @throws {InvalidRangeResponseError} when the server mishandles ranges.
  */
-export async function downloadSegment(segment: Pick<SegmentRecord, 'id' | 'startOffset' | 'endOffset'>, ctx: SegmentTransferContext): Promise<void> {
-	const { tracker } = ctx
+export async function downloadSegment(segment: Pick<SegmentRecord, 'id' | 'startOffset' | 'endOffset'>, context: SegmentTransferContext): Promise<void> {
+	const { tracker } = context
 	const end = segment.endOffset
 	tracker.markStatus(segment.id, 'active')
 	await withRetry(async () => {
 		const start = tracker.nextOffset(segment.id)
 		if (start > end) return
-		const headers: Record<string, string> = { ...ctx.headers, 'Accept-Encoding': 'identity', Range: `bytes=${start}-${end}` }
-		if (ctx.validator !== null) headers['If-Range'] = ctx.validator
-		const { response, abort } = await ctx.fetch(ctx.url, { headers, signal: ctx.signal })
+		const headers: Record<string, string> = { ...context.headers, 'Accept-Encoding': 'identity', Range: `bytes=${start}-${end}` }
+		if (context.validator !== null) headers['If-Range'] = context.validator
+		const { response, abort } = await context.fetch(context.url, { headers, signal: context.signal })
 		try {
-			validateSegmentResponse(response, start, end, ctx)
-			const finished = await pump(response, abort, ctx, start, end + 1, () => new InvalidRangeResponseError(), (position, length) => tracker.advance(segment.id, position, length))
+			validateSegmentResponse(response, start, end, context)
+			const finished = await pump(response, abort, context, start, end + 1, () => new InvalidRangeResponseError(), (position, length) => tracker.advance(segment.id, position, length))
 			if (finished !== end + 1) throw new IncompleteResponseError()
 		} finally {
 			abort()
 		}
-	}, ctx.retry, { signal: ctx.signal, onRetry: (_attempt, error) => ctx.onRetry(segment.id, error) })
+	}, context.retry, { signal: context.signal, onRetry: (_attempt, error) => context.onRetry(segment.id, error) })
 	tracker.markStatus(segment.id, 'completed')
 }
 
@@ -119,22 +119,22 @@ export async function downloadSegment(segment: Pick<SegmentRecord, 'id' | 'start
  * Returns the number of bytes written. When `expectedBytes` is known, the
  * body must match it exactly.
  */
-export async function downloadSingleStream(ctx: TransferContext, expectedBytes: number | null): Promise<number> {
+export async function downloadSingleStream(context: TransferContext, expectedBytes: number | null): Promise<number> {
 	return withRetry(async () => {
-		ctx.tracker.reset()
-		const { response, abort } = await ctx.fetch(ctx.url, {
-			headers: { ...ctx.headers, 'Accept-Encoding': 'identity' },
-			signal: ctx.signal
+		context.tracker.reset()
+		const { response, abort } = await context.fetch(context.url, {
+			headers: { ...context.headers, 'Accept-Encoding': 'identity' },
+			signal: context.signal
 		})
 		try {
 			assertOk(response)
 			const declared = response.headers.has('content-encoding') ? null : parseContentLength(response.headers.get('content-length'))
 			if (expectedBytes !== null && declared !== null && declared !== expectedBytes) throw new RemoteChangedError()
-			const finished = await pump(response, abort, ctx, 0, expectedBytes, () => new RemoteChangedError(), (_position, length) => ctx.tracker.addBytes(length))
+			const finished = await pump(response, abort, context, 0, expectedBytes, () => new RemoteChangedError(), (_position, length) => context.tracker.addBytes(length))
 			if (expectedBytes !== null && finished !== expectedBytes) throw new IncompleteResponseError()
 			return finished
 		} finally {
 			abort()
 		}
-	}, ctx.retry, { signal: ctx.signal, onRetry: (_attempt, error) => ctx.onRetry(null, error) })
+	}, context.retry, { signal: context.signal, onRetry: (_attempt, error) => context.onRetry(null, error) })
 }
