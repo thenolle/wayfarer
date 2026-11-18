@@ -3,12 +3,19 @@ import type { Middleware } from '@gambrel/core'
 import { isWildcardHost } from '../../config/config'
 import type { AppConfig } from '../../config/config'
 import { errorResponse } from '../api/errors'
+import { withHeaders } from './headers'
 
 const LOOPBACK_NAMES = ['localhost', '127.0.0.1', '[::1]']
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 const HEALTH_PATH = '/api/health'
+const API_PREFIX = '/api/'
+const API_CSP = "default-src 'none'; frame-ancestors 'none'"
+const PAGE_CSP = "default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
 
-function hostnameOf(value: string | null): string | null {
+/**
+ * The host name in a `Host` header, lower-cased, or null when it is malformed.
+ */
+export function hostnameOf(value: string | null): string | null {
 	if (value === null) return null
 	try { return new URL(`http://${value}`).hostname.toLowerCase() } catch { return null }
 }
@@ -29,23 +36,27 @@ export function buildAllowedHosts(config: Pick<AppConfig, 'host' | 'allowedHosts
 }
 
 /**
- * Adds defensive headers to every response. API responses are never cached and
- * may not be framed or embedded.
+ * Adds defensive headers to every response. Pages and API responses are never
+ * cached. API responses may not be embedded; pages may load only their own
+ * scripts, styles and connections, and may post forms only to themselves.
  */
 export function securityHeaders(): Middleware {
-	return async (context, next) => {
-		const response = await next()
-		const headers = new Headers(response.headers)
-		const defaults: Record<string, string> = { 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', 'x-frame-options': 'DENY', 'cross-origin-resource-policy': 'same-origin' }
-		if (context.url.pathname.startsWith('/api/')) {
-			defaults['cache-control'] = 'no-store'
-			defaults['content-security-policy'] = "default-src 'none'; frame-ancestors 'none'"
-		}
-		for (const [name, value] of Object.entries(defaults)) {
-			if (!headers.has(name)) headers.set(name, value)
-		}
-		return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
-	}
+  return async (context, next) => {
+    const response = await next()
+    const defaults: Record<string, string> = {
+      'x-content-type-options': 'nosniff',
+      'referrer-policy': 'no-referrer',
+      'x-frame-options': 'DENY',
+      'cross-origin-resource-policy': 'same-origin',
+      'cache-control': 'no-store',
+      'content-security-policy': context.url.pathname.startsWith(API_PREFIX) ? API_CSP : PAGE_CSP
+    }
+    return withHeaders(response, (headers) => {
+      for (const [name, value] of Object.entries(defaults)) {
+        if (!headers.has(name)) headers.set(name, value)
+      }
+    })
+  }
 }
 
 /**
@@ -66,22 +77,30 @@ function digest(value: string): Uint8Array {
 }
 
 /**
- * Compares in constant time so response timing does not reveal how much of a
- * guessed token was correct.
+ * Compares secrets in constant time, so response timing does not reveal how
+ * much of a guess was correct.
+ */
+export function tokensMatch(candidate: string, expected: string): boolean {
+	return timingSafeEqual(digest(candidate), digest(expected))
+}
+
+/**
+ * True when `header` is `Authorization: Bearer <token>` with the right token.
  */
 export function isAuthorized(header: string | null, token: string): boolean {
 	const match = header === null ? null : /^Bearer\s+(.+)$/i.exec(header.trim())
 	if (match === null || match[1] === undefined) return false
-	return timingSafeEqual(digest(match[1]), digest(token))
+	return tokensMatch(match[1], token)
 }
 
 /**
- * Requires `Authorization: Bearer <token>` when a token is configured. The
- * health endpoint stays open so monitors and container health checks work.
+ * Requires `Authorization: Bearer <token>` on API routes when a token is
+ * configured. The health endpoint stays open so monitors and container health
+ * checks work. Pages, forms and WebSockets use session cookies instead.
  */
 export function authGuard(token: string | null): Middleware {
 	return (context, next) => {
-		if (token === null || context.url.pathname === HEALTH_PATH) return next()
+		if (token === null || !context.url.pathname.startsWith(API_PREFIX) || context.url.pathname === HEALTH_PATH) return next()
 		if (isAuthorized(context.request.headers.get('authorization'), token)) return next()
 		return errorResponse(401, 'unauthorized', 'Authentication is required', { 'www-authenticate': 'Bearer' })
 	}

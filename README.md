@@ -28,14 +28,13 @@ Available today:
   every redirect is checked.
 - Crash recovery and graceful shutdown that keep progress consistent with the
   files on disk.
-- A JSON REST API with bearer-token authentication, host and origin checks,
-  and file streaming with byte ranges. See [docs/api/rest.md](docs/api/rest.md).
+- A JSON REST API with bearer-token authentication. See
+  [docs/api/rest.md](docs/api/rest.md).
+- A server-rendered web dashboard (Gambrel) that works without JavaScript, with
+  sessions, CSRF protection, dark mode and live updates over WebSockets. See
+  [docs/architecture/dashboard.md](docs/architecture/dashboard.md).
 
-Not yet available: the web dashboard and live WebSocket updates.
-
-See [docs/architecture/lifecycle.md](docs/architecture/lifecycle.md) and
-[docs/architecture/resolvers-and-networking.md](docs/architecture/resolvers-and-networking.md)
-for details.
+Not yet available: Docker, systemd, Windows and macOS service configurations.
 
 ## Requirements
 
@@ -53,6 +52,17 @@ bun run check
 
 `bun run check` runs the strict TypeScript check and the test suite.
 
+### Running the dashboard
+
+```bash
+bun run build      # builds the browser bundle into dist/
+bun run start      # serves http://127.0.0.1:8787
+bun run dev        # development mode with restarts
+```
+
+Open <http://127.0.0.1:8787>. Set `WAYFARER_AUTH_TOKEN` (16 or more characters)
+before exposing the service beyond the local machine.
+
 ## Configuration
 
 All settings are environment variables. Defaults are chosen to be safe.
@@ -65,6 +75,7 @@ All settings are environment variables. Defaults are chosen to be safe.
 | `WAYFARER_ALLOWED_HOSTS`            | empty                        | Extra `Host` names (without ports) the API answers to. Required for `0.0.0.0` and `::`. |
 | `WAYFARER_DATA_DIRECTORY`           | `./data`                     | Database and state directory.                                                           |
 | `WAYFARER_DOWNLOAD_DIRECTORY`       | `<data directory>/downloads` | Destination for completed files.                                                        |
+| `WAYFARER_CLIENT_DIRECTORY`         | `dist/client`                | Directory of the built browser assets (`bun run build`).                                |
 | `WAYFARER_MAX_SEGMENTS`             | `8`                          | Parallel segments per download (1–64).                                                  |
 | `WAYFARER_MAX_CONCURRENT_DOWNLOADS` | `3`                          | Downloads running at once (1–64).                                                       |
 | `WAYFARER_MAX_CONCURRENT_SEGMENTS`  | `16`                         | Segments running at once across all downloads (1–256).                                  |

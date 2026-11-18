@@ -25,3 +25,5 @@ desktop.ini
 *.tsbuildinfo
 
 data/
+.gambrel/
+dist/

@@ -33,6 +33,7 @@ export interface AppConfig {
 	readonly allowedHosts: readonly string[]
 	readonly dataDirectory: string
 	readonly downloadDirectory: string
+	readonly clientDirectory: string
 	readonly databasePath: string
 	readonly maxSegments: number
 	readonly maxConcurrentDownloads: number
@@ -104,8 +105,8 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 	if (!isLoopbackHost(host) && authToken === null) throw new ConfigError('WAYFARER_AUTH_TOKEN is required when WAYFARER_HOST is not a loopback address')
 	const allowedHosts = readList(env, 'WAYFARER_ALLOWED_HOSTS').map((entry) => entry.toLowerCase())
 	if (isWildcardHost(host) && allowedHosts.length === 0) throw new ConfigError('WAYFARER_ALLOWED_HOSTS is required when WAYFARER_HOST is a wildcard address')
-	const dataDir = resolve(readString(env, 'WAYFARER_DATA_DIRECTORY') ?? './data')
-	const downloadDir = resolve(readString(env, 'WAYFARER_DOWNLOAD_DIRECTORY') ?? join(dataDir, 'downloads'))
+	const dataDirectory = resolve(readString(env, 'WAYFARER_DATA_DIRECTORY') ?? './data')
+	const downloadDir = resolve(readString(env, 'WAYFARER_DOWNLOAD_DIRECTORY') ?? join(dataDirectory, 'downloads'))
 	const baseDelayMs = readInteger(env, 'WAYFARER_RETRY_BASE_DELAY_MS', 500, 1, 3_600_000)
 	const maxDelayMs = readInteger(env, 'WAYFARER_RETRY_MAX_DELAY_MS', 30_000, 1, 3_600_000)
 	if (maxDelayMs < baseDelayMs) throw new ConfigError('WAYFARER_RETRY_MAX_DELAY_MS must not be smaller than WAYFARER_RETRY_BASE_DELAY_MS')
@@ -114,9 +115,10 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 		port: readInteger(env, 'WAYFARER_PORT', 8787, 0, 65_535),
 		authToken,
 		allowedHosts,
-		dataDirectory: dataDir,
+		dataDirectory: dataDirectory,
 		downloadDirectory: downloadDir,
-		databasePath: join(dataDir, 'wayfarer.sqlite'),
+		clientDirectory: resolve(readString(env, 'WAYFARER_CLIENT_DIRECTORY') ?? 'dist.client'),
+		databasePath: join(dataDirectory, 'wayfarer.sqlite'),
 		maxSegments: readInteger(env, 'WAYFARER_MAX_SEGMENTS', 8, 1, 64),
 		maxConcurrentDownloads: readInteger(env, 'WAYFARER_MAX_CONCURRENT_DOWNLOADS', 3, 1, 64),
 		maxConcurrentSegments: readInteger(env, 'WAYFARER_MAX_CONCURRENT_SEGMENTS', 16, 1, 256),
