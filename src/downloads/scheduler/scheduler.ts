@@ -20,7 +20,9 @@ export interface DownloadRunner {
 export interface SchedulerOptions {
 	readonly maxConcurrentDownloads: number
 	/** Only files inside this directory are ever deleted. */
-	readonly downloadDir: string
+	readonly downloadDirectory: string
+	/** More directories whose files may be deleted, besides `downloadDir`. */
+	readonly extraRoots?: readonly string[]
 }
 
 export interface SchedulerDependencies {
@@ -240,10 +242,16 @@ export class DownloadScheduler {
 	}
 
 	private async deleteCompletedFile(destination: string): Promise<void> {
-		try {
-			await rm(resolveWithin(this.options.downloadDir, destination), { force: true })
-		} catch (error) {
-			if (!(error instanceof PathEscapeError)) throw error
+		for (const root of [this.options.downloadDirectory, ...(this.options.extraRoots ?? [])]) {
+			let path: string
+			try {
+				path = resolveWithin(root, destination)
+			} catch (error) {
+				if (error instanceof PathEscapeError) continue
+				throw error
+			}
+			await rm(path, { force: true })
+			return
 		}
 	}
 }

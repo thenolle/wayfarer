@@ -1,5 +1,7 @@
 import { join, resolve } from 'node:path'
 import { findClientDir } from './client-dir'
+import { LocationError, parseLocations } from '../filesystem/locations'
+import type { DownloadLocation } from '../filesystem/locations'
 
 const WILDCARD_HOSTS = new Set(['0.0.0.0', '::', '[::]'])
 
@@ -34,6 +36,7 @@ export interface AppConfig {
 	readonly allowedHosts: readonly string[]
 	readonly dataDirectory: string
 	readonly downloadDirectory: string
+	readonly locations: readonly DownloadLocation[]
 	readonly clientDirectory: string
 	readonly databasePath: string
 	readonly maxSegments: number
@@ -107,7 +110,14 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 	const allowedHosts = readList(env, 'WAYFARER_ALLOWED_HOSTS').map((entry) => entry.toLowerCase())
 	if (isWildcardHost(host) && allowedHosts.length === 0) throw new ConfigError('WAYFARER_ALLOWED_HOSTS is required when WAYFARER_HOST is a wildcard address')
 	const dataDirectory = resolve(readString(env, 'WAYFARER_DATA_DIRECTORY') ?? './data')
-	const downloadDir = resolve(readString(env, 'WAYFARER_DOWNLOAD_DIRECTORY') ?? join(dataDirectory, 'downloads'))
+	const downloadDirectory = resolve(readString(env, 'WAYFARER_DOWNLOAD_DIRECTORY') ?? join(dataDirectory, 'downloads'))
+	let locations: readonly DownloadLocation[]
+	try {
+		locations = parseLocations(downloadDirectory, readList(env, 'WAYFARER_LOCATIONS'))
+	} catch (error) {
+		if (error instanceof LocationError) throw new ConfigError(`WAYFARER_LOCATIONS: ${error.message}`)
+		throw error
+	}
 	const baseDelayMs = readInteger(env, 'WAYFARER_RETRY_BASE_DELAY_MS', 500, 1, 3_600_000)
 	const maxDelayMs = readInteger(env, 'WAYFARER_RETRY_MAX_DELAY_MS', 30_000, 1, 3_600_000)
 	if (maxDelayMs < baseDelayMs) throw new ConfigError('WAYFARER_RETRY_MAX_DELAY_MS must not be smaller than WAYFARER_RETRY_BASE_DELAY_MS')
@@ -116,8 +126,9 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 		port: readInteger(env, 'WAYFARER_PORT', 8787, 0, 65_535),
 		authToken,
 		allowedHosts,
-		dataDirectory: dataDirectory,
-		downloadDirectory: downloadDir,
+		dataDirectory,
+		downloadDirectory,
+		locations,
 		clientDirectory: resolve(readString(env, 'WAYFARER_CLIENT_DIRECTORY') ?? findClientDir(import.meta.dir, process.cwd())),
 		databasePath: join(dataDirectory, 'wayfarer.sqlite'),
 		maxSegments: readInteger(env, 'WAYFARER_MAX_SEGMENTS', 8, 1, 64),

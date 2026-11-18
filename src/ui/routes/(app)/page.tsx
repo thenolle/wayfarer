@@ -18,7 +18,7 @@ export default function DashboardPage(props: PageProps<ParamsOf<'/'>, LoaderData
 			<section class="main">
 				<Flash flash={data.flash} />
 				<StatsRow stats={data.stats} bytesPerSecond={data.bandwidthBytesPerSecond} />
-				<AddForm csrf={data.csrf} view={data.view} />
+				<AddForm csrf={data.csrf} view={data.view} locations={data.locations} />
 				<SearchForm view={data.view} />
 				<form id="bulk" method="post" action="/actions/bulk"><HiddenFields csrf={data.csrf} view={data.view} /></form>
 				<Toolbar class="bulk-bar" role="toolbar" aria-label="Actions for selected downloads">
@@ -35,7 +35,7 @@ export default function DashboardPage(props: PageProps<ParamsOf<'/'>, LoaderData
 				<ul class="downloads" id="downloads">
 					{data.downloads.length === 0
 						? (<li><EmptyState icon={<Inbox size={32} />} title={data.view.q === '' ? 'Nothing here yet' : 'No matches'} description={data.view.q === '' ? 'Paste a link above to start a download.' : 'Try a different search.'} /></li>)
-						: (data.downloads.map((download) => (<DownloadItem key={download.id} download={download} csrf={data.csrf} view={data.view} />)))
+						: (data.downloads.map((download) => (<DownloadItem key={download.id} download={download} csrf={data.csrf} view={data.view} canReveal={data.canReveal} />)))
 					}
 				</ul>
 				<p class="muted shortcuts" data-js-only><Kbd>/</Kbd> search · <Kbd>N</Kbd> add links</p>

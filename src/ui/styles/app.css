@@ -592,3 +592,73 @@ html[data-js] .select-all[data-js-only] {
     display: none;
   }
 }
+
+.preview {
+  padding: 8px 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--muted));
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.preview[data-state='ready'] {
+  border-color: hsl(var(--gb-success));
+}
+
+.preview[data-state='error'] {
+  border-color: hsl(var(--destructive));
+  color: hsl(var(--destructive));
+}
+
+.add-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.add-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.add-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.saved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.saved-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.copy-path {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.copy-path[data-copied]::after {
+  content: 'Copied';
+  margin-left: 4px;
+  font-size: 0.7rem;
+}
+
+@media (max-width:640px) {
+  .add-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

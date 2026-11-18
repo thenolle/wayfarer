@@ -1,3 +1,5 @@
+import { dirname } from 'node:path'
+import { isLoopbackHost } from '../../config/config'
 import { checksumStatus } from '../../downloads/domain/checksum'
 import type { DownloadRecord, SegmentRecord } from '../../downloads/domain/records'
 import { isFinalStatus } from '../../downloads/domain/status'
@@ -38,6 +40,7 @@ function toDownloadView(record: DownloadRecord, segments: readonly SegmentRecord
 		id: record.id,
 		url: record.url,
 		filename: record.filename,
+		folder: dirname(record.destination),
 		status: record.status,
 		priority: record.priority,
 		totalBytes: record.totalBytes,
@@ -99,6 +102,8 @@ export function buildDashboard(runtime: ApiRuntime, session: Session, search: st
 		stats: { speedBytesPerSecond: speed, active: counts.active, queued: counts.queued, completedBytes },
 		downloads: visible.map((record) => toDownloadView(record, isFinalStatus(record.status) ? [] : runtime.segments.list(record.id))),
 		flash: takeFlash(session),
-		bandwidthBytesPerSecond: runtime.limiter.bytesPerSecond
+		bandwidthBytesPerSecond: runtime.limiter.bytesPerSecond,
+		locations: runtime.config.locations.map((location) => ({ id: location.id, label: location.label })),
+    canReveal: isLoopbackHost(runtime.config.host),
 	}
 }

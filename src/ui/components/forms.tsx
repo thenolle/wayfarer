@@ -27,15 +27,35 @@ export function HiddenFields(props: { csrf: string; view: ViewState }): Child {
 	)
 }
 
-export function AddForm(props: { csrf: string; view: ViewState }): Child {
+export function AddForm(props: { csrf: string; view: ViewState; locations: readonly { id: string; label: string }[] }): Child {
 	return (
 		<form class="add-form" method="post" action="/actions/add">
 			<HiddenFields csrf={props.csrf} view={props.view} />
 			<Label for="add-url">Add downloads</Label>
 			<Textarea id="add-url" name="url" rows={2} required autocomplete="off" spellcheck={false} placeholder="Paste one or more links, one per line" />
+			<div id="add-preview" class="preview" role="status" aria-live="polite" hidden></div>
+			<div class="add-row">
+				<div class="add-field">
+					<Label for="add-filename">File name</Label>
+					<Input id="add-filename" name="filename" type="text" autocomplete="off" placeholder="Detected automatically" />
+				</div>
+				<div class="add-field">
+					<Label for="add-location">Save to</Label>
+					<div class="gb-select-wrap">
+						<select id="add-location" name="location" class="gb-select">
+							{props.locations.map((location) => (<option key={location.id} value={location.id}>{location.label}</option>))}
+						</select>
+						<ChevronDown class="gb-select-icon" size={16} />
+					</div>
+				</div>
+				<div class="add-field">
+					<Label for="add-subfolder">Subfolder</Label>
+					<Input id="add-subfolder" name="subfolder" type="text" autocomplete="off" placeholder="Optional, e.g. Games/PC" />
+				</div>
+			</div>
 			<div class="add-actions">
 				<details class="add-options">
-					<summary>Options</summary>
+					<summary>More options</summary>
 					<div class="options-grid">
 						<Label for="add-priority">Priority (-100 to 100)</Label>
 						<Input id="add-priority" name="priority" type="number" min="-100" max="100" step="1" value="0" />
@@ -43,7 +63,10 @@ export function AddForm(props: { csrf: string; view: ViewState }): Child {
 						<Input id="add-sha256" name="sha256" type="text" placeholder="Single link only" autocomplete="off" />
 					</div>
 				</details>
-				<Button type="submit"><Plus size={16} /> Add</Button>
+				<div class="add-buttons">
+					<Button type="button" variant="outline" data-preview data-js-only><Search size={16} /> Check link</Button>
+					<Button type="submit"><Plus size={16} /> Add</Button>
+				</div>
 			</div>
 		</form>
 	)

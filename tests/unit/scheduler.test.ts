@@ -53,7 +53,7 @@ afterEach(async () => {
 })
 
 function createScheduler(maxConcurrentDownloads: number): DownloadScheduler {
-	return new DownloadScheduler({ downloads: context.downloads, segments: context.segments, runner }, { maxConcurrentDownloads, downloadDir: context.directory })
+	return new DownloadScheduler({ downloads: context.downloads, segments: context.segments, runner }, { maxConcurrentDownloads, downloadDirectory: context.directory })
 }
 
 function enqueue(name: string, priority: number = 0) {
