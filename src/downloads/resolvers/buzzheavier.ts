@@ -1,6 +1,6 @@
 import { CookieJar } from '../http/cookies'
 import { failAt, ResolverError } from '../http/errors'
-import { assertOk, BROWSER_HEADERS, BROWSER_USER_AGENT, discardBody } from '../http/headers'
+import { assertNoChallenge, assertOk, BROWSER_HEADERS, BROWSER_USER_AGENT, discardBody } from '../http/headers'
 import type { ResolvedSource, ResolverContext, UrlResolver } from './types'
 
 const HOSTS = new Set(['buzzheavier.com', 'bzzhr.to', 'bzzhr.co'])
@@ -72,6 +72,7 @@ export class BuzzheavierResolver implements UrlResolver {
 			followRedirects: false,
 			signal: context.signal
 		})
+		assertNoChallenge(step.response, 'Buzzheavier')
 		let target: URL
 		try { target = this.locateFile(step.response, step.url) } catch (error) { failAt('Download request', error) }
 		const cookie = jar.header(target)

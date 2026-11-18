@@ -1,4 +1,4 @@
-import { HttpStatusError } from './errors'
+import { HttpStatusError, ResolverError } from './errors'
 
 export const DEFAULT_USER_AGENT = 'Wayfarer/0.1 (+https://github.com/thenolle/wayfarer)'
 export const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
@@ -73,4 +73,14 @@ export function assertOk(response: Response): void {
 	if (response.ok) return
 	discardBody(response)
 	throw new HttpStatusError(response.status, parseRetryAfter(response.headers.get('retry-after')))
+}
+
+/**
+ * Refuses a response that is a Cloudflare challenge page, which only a browser
+ * can pass. Wayfarer never solves or bypasses challenges.
+ */
+export function assertNoChallenge(response: Response, site: string): void {
+	if (response.headers.get('cf-mitigated')?.toLowerCase() !== 'challenge') return
+	discardBody(response)
+	throw new ResolverError(`${site} is protected by a Cloudflare challenge that only a browser can pass, and Wayfarer does not bypass those. Open the page in your browser, start the download there, copy the download link and add that link here instead.`)
 }
