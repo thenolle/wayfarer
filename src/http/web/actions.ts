@@ -12,11 +12,24 @@ import { tokensMatch } from '../middleware/security'
 import { LoginThrottle } from './session'
 import type { Session } from './session'
 import type { SessionResolver } from './session-context'
+import { isLoopbackHost } from '../../config/config'
+import { BlockedDestinationError, HttpStatusError, ResolverError, UnsupportedUrlError } from '../../downloads/http/errors'
+import { PathEscapeError } from '../../filesystem/errors'
+import { confineToLocations } from '../../filesystem/locations'
+import { revealInFileManager } from '../../filesystem/reveal'
 
 const SPEED_UNITS: Readonly<Record<string, number>> = { kib: 1024, mib: 1024 * 1024 }
 const INVALID_TOKEN_MESSAGE = 'Invalid or missing security token. Go back, reload the page and try again.'
 const MAX_BATCH = 50
 const MAX_BULK = 200
+const MAX_PREVIEWS = 4
+
+function previewMessage(error: unknown): string {
+	if (error instanceof HttpStatusError || error instanceof ResolverError || error instanceof BlockedDestinationError || error instanceof UnsupportedUrlError || error instanceof InvalidDownloadError) return error.message
+	if (error instanceof DOMException && error.name === 'TimeoutError') return 'The server took too long to answer'
+	if (error instanceof TypeError) return 'The server could not be reached'
+	return describeFailure(error)
+}
 
 async function readForm(request: Request): Promise<FormData | null> {
 	try { return await request.formData() } catch { return null }
@@ -89,6 +102,8 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 		return redirect(returnPath(form), 303)
 	}
 
+	let previews = 0
+
 	app.post('/actions/add', (context) =>
 		perform(context.request, async (form) => {
 			const urls = field(form, 'url').split(/\s+/).filter((entry) => entry !== '')
@@ -97,12 +112,21 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 			const priorityText = field(form, 'priority')
 			const checksum = field(form, 'sha256')
 			if (checksum !== '' && urls.length > 1) throw new InvalidDownloadError('A checksum can only be used when adding a single link')
+			const filename = field(form, 'filename')
+			if (filename !== '' && urls.length > 1) throw new InvalidDownloadError('A file name can only be set when adding a single link')
 			const priority = priorityText === '' ? undefined : wholeNumber(form, 'priority', 'Priority')
 			const added: string[] = []
 			let failed = 0
 			let firstError: unknown = null
 			for (const url of urls) {
-				const input: AddDownloadInput = { url, ...(priority === undefined ? {} : { priority }), ...(checksum === '' ? {} : { expectedSha256: checksum }) }
+				const input: AddDownloadInput = {
+					url,
+					locationId: field(form, 'location'),
+					subfolder: field(form, 'subfolder'),
+					...(priority === undefined ? {} : { priority }),
+					...(checksum === '' ? {} : { expectedSha256: checksum }),
+					...(filename === '' ? {} : { filename })
+				}
 				try {
 					added.push((await intake.add(input)).filename)
 				} catch (error) {
@@ -180,23 +204,21 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 		})
 	)
 
-	app.post('/actions/bandwidth', (context) =>
-		perform(context.request, (form) => {
-			const preset = field(form, 'preset')
-			let bytesPerSecond: number
-			if (preset !== '') {
-				bytesPerSecond = Number(preset)
-				if (!Number.isSafeInteger(bytesPerSecond) || bytesPerSecond < 0) throw new InvalidDownloadError('Enter a speed of zero or more, and choose a unit')
-			} else {
-				const amount = Number(field(form, 'amount'))
-				const unit = SPEED_UNITS[field(form, 'unit')]
-				if (field(form, 'amount') === '' || !Number.isFinite(amount) || amount < 0 || unit === undefined) throw new InvalidDownloadError('Enter a speed of zero or more, and choose a unit')
-				bytesPerSecond = Math.round(amount * unit)
-			}
-			runtime.setBandwidthLimit(bytesPerSecond)
-			return bytesPerSecond === 0 ? 'Bandwidth limit removed' : `Bandwidth limited to ${formatSpeed(bytesPerSecond)}`
-		})
-	)
+	app.post('/actions/bandwidth', (context) => perform(context.request, (form) => {
+		const preset = field(form, 'preset')
+		let bytesPerSecond: number
+		if (preset !== '') {
+			bytesPerSecond = Number(preset)
+			if (!Number.isSafeInteger(bytesPerSecond) || bytesPerSecond < 0) throw new InvalidDownloadError('Enter a speed of zero or more, and choose a unit')
+		} else {
+			const amount = Number(field(form, 'amount'))
+			const unit = SPEED_UNITS[field(form, 'unit')]
+			if (field(form, 'amount') === '' || !Number.isFinite(amount) || amount < 0 || unit === undefined) throw new InvalidDownloadError('Enter a speed of zero or more, and choose a unit')
+			bytesPerSecond = Math.round(amount * unit)
+		}
+		runtime.setBandwidthLimit(bytesPerSecond)
+		return bytesPerSecond === 0 ? 'Bandwidth limit removed' : `Bandwidth limited to ${formatSpeed(bytesPerSecond)}`
+	}))
 
 	app.post('/actions/login', async (context) => {
 		const { session } = sessions.resolve(context.request)
@@ -232,4 +254,37 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 		if (!session.authenticated) return redirect('/login', 303)
 		return serveCompletedFile(runtime, context.params.id, context.request)
 	})
+
+	app.post('/actions/preview', async (context) => {
+		const { session } = sessions.resolve(context.request)
+		if (!session.authenticated) return Response.json({ error: 'Sign in first' }, { status: 401 })
+		const form = await readForm(context.request)
+		if (form === null || !csrfValid(session, form)) return Response.json({ error: INVALID_TOKEN_MESSAGE }, { status: 403 })
+		if (previews >= MAX_PREVIEWS) return Response.json({ error: 'Too many checks at once. Try again in a moment.' }, { status: 429 })
+		previews += 1
+		try {
+			return Response.json({ data: await runtime.inspect(field(form, 'url')) })
+		} catch (error) {
+			return Response.json({ error: previewMessage(error) }, { status: 422 })
+		} finally {
+			previews -= 1
+		}
+	})
+
+	app.post('/actions/downloads/:id/reveal', (context) => perform(context.request, async () => {
+		if (!isLoopbackHost(runtime.config.host)) throw new InvalidDownloadError('Opening folders only works when Wayfarer runs on this computer')
+		const record = runtime.downloads.get(context.params.id)
+		if (record === null) throw new DownloadNotFoundError(context.params.id)
+		let path: string
+		try {
+			path = confineToLocations(runtime.config.locations, record.destination)
+		} catch (error) {
+			if (error instanceof PathEscapeError) throw new InvalidDownloadError('That file is outside the download folders')
+			throw error
+		}
+		const complete = record.status === 'completed'
+		if (complete && !(await Bun.file(path).exists())) throw new InvalidDownloadError('The file is no longer there')
+		if (!revealInFileManager(path, complete)) throw new InvalidDownloadError('No file manager could be opened on this system')
+		return 'Opened the folder'
+	}))
 }

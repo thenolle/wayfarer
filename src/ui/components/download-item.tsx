@@ -1,6 +1,6 @@
 /** @jsxImportSource @gambrel/view */
-import { buttonVariants, Card, Checkbox, DescriptionList, Progress } from '@gambrel/components'
-import { CircleX, Download, Ellipsis, Pause, Play, RefreshCw, Trash } from '@gambrel/icons'
+import { Button, buttonVariants, Card, Checkbox, DescriptionList, Progress } from '@gambrel/components'
+import { CircleX, Copy, Download, Ellipsis, FolderOpen, Pause, Play, RefreshCw, Trash } from '@gambrel/icons'
 import type { Child } from '@gambrel/view'
 import { checksumLabel, formatBytes, formatEta, formatPercent, formatSpeed, PROGRESS_SCALE, retryLabel } from '../format'
 import { isRunning } from '../view-model'
@@ -8,7 +8,7 @@ import type { DownloadView, ViewState } from '../view-model'
 import { StatusBadge, StatusIcon } from './chrome'
 import { ActionButton, PriorityForm } from './forms'
 
-export function DownloadItem(props: { download: DownloadView; csrf: string; view: ViewState }): Child {
+export function DownloadItem(props: { download: DownloadView; csrf: string; view: ViewState; canReveal: boolean }): Child {
 	const { download: d, csrf, view } = props
 	const running = isRunning(d.status)
 	const open = d.status !== 'completed' && d.status !== 'cancelled'
@@ -53,6 +53,11 @@ export function DownloadItem(props: { download: DownloadView; csrf: string; view
 								<dd>{d.priority}</dd>
 							</div>
 						</dl>
+						<p class="saved" title={d.folder}>
+							<FolderOpen size={14} />
+							<span class="saved-path">{d.folder}</span>
+							<Button type="button" variant="ghost" size="icon" class="copy-path" data-copy={d.folder} data-js-only aria-label="Copy folder path"><Copy size={14} /></Button>
+						</p>
 						{d.segments.length > 1 ? (
 							<div class="segments" role="group" aria-label="Segment progress">
 								{d.segments.map((segment) => (
@@ -64,6 +69,7 @@ export function DownloadItem(props: { download: DownloadView; csrf: string; view
 						{checksum === null ? null : (<p class={`note note-${d.checksum.state}`} data-checksum={d.checksum.state}>{checksum}</p>)}
 						{d.error === null ? null : (<p class="note note-error" role="alert">{d.error.message}</p>)}
 						<div class="actions">
+							{props.canReveal ? action('reveal', 'Show in folder', FolderOpen, 'outline') : null}
 							{d.status === 'completed' ? (<a class={buttonVariants({ size: 'sm' })} href={`/files/${d.id}`}><Download size={14} /> Download file</a>) : null}
 							{d.status === 'queued' || running ? action('pause', 'Pause', Pause, 'outline') : null}
 							{d.status === 'paused' ? action('resume', 'Resume', Play, 'default') : null}

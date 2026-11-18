@@ -76,7 +76,7 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
 		}, { maxSegments: options.maxSegments ?? 4, retry: TEST_RETRY, persistIntervalMs: 50, idleTimeoutMs: 5000 })
 	}
 	function createScheduler(): DownloadScheduler {
-		const scheduler = new DownloadScheduler({ downloads: context.downloads, segments: context.segments, runner: createEngine() }, { maxConcurrentDownloads: options.maxConcurrentDownloads ?? 2, downloadDir })
+		const scheduler = new DownloadScheduler({ downloads: context.downloads, segments: context.segments, runner: createEngine() }, { maxConcurrentDownloads: options.maxConcurrentDownloads ?? 2, downloadDirectory: downloadDir })
 		schedulers.push(scheduler)
 		return scheduler
 	}

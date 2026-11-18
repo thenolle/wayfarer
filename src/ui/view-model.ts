@@ -57,32 +57,32 @@ export function filterOf(status: DownloadStatus): Exclude<FilterName, 'all'> {
 }
 
 export function matchesFilter(status: DownloadStatus, filter: FilterName): boolean {
-  return filter === 'all' || filterOf(status) === filter
+	return filter === 'all' || filterOf(status) === filter
 }
 
 export type ViewState = { readonly filter: FilterName; readonly q: string; readonly sort: SortName }
 
 export function viewHref(view: ViewState, overrides: Partial<ViewState> = {}): string {
-  const next = { ...view, ...overrides }
-  const params = new URLSearchParams()
-  if (next.filter !== 'all') params.set('filter', next.filter)
-  if (next.q !== '') params.set('q', next.q)
-  if (next.sort !== DEFAULT_SORT) params.set('sort', next.sort)
-  const text = params.toString()
-  return text === '' ? '/' : `/?${text}`
+	const next = { ...view, ...overrides }
+	const params = new URLSearchParams()
+	if (next.filter !== 'all') params.set('filter', next.filter)
+	if (next.q !== '') params.set('q', next.q)
+	if (next.sort !== DEFAULT_SORT) params.set('sort', next.sort)
+	const text = params.toString()
+	return text === '' ? '/' : `/?${text}`
 }
 
 export type ChecksumView =
-  | { readonly state: 'not-requested' }
-  | { readonly state: 'pending'; readonly expected: string }
-  | { readonly state: 'verified'; readonly sha256: string }
-  | { readonly state: 'mismatch'; readonly expected: string; readonly actual: string }
+	| { readonly state: 'not-requested' }
+	| { readonly state: 'pending'; readonly expected: string }
+	| { readonly state: 'verified'; readonly sha256: string }
+	| { readonly state: 'mismatch'; readonly expected: string; readonly actual: string }
 
 export type SegmentView = {
-  readonly index: number
-  readonly downloadedBytes: number
-  readonly totalBytes: number
-  readonly status: SegmentStatus
+	readonly index: number
+	readonly downloadedBytes: number
+	readonly totalBytes: number
+	readonly status: SegmentStatus
 }
 
 /**
@@ -90,20 +90,21 @@ export type SegmentView = {
  * no file paths, resolved URLs or other server details.
  */
 export type DownloadView = {
-  readonly id: string
-  readonly url: string
-  readonly filename: string
-  readonly status: DownloadStatus
-  readonly priority: number
-  readonly totalBytes: number | null
-  readonly downloadedBytes: number
-  readonly progress: number | null
-  readonly speedBytesPerSecond: number
-  readonly etaSeconds: number | null
-  readonly retryCount: number
-  readonly checksum: ChecksumView
-  readonly error: { readonly code: string; readonly message: string } | null
-  readonly segments: SegmentView[]
+	readonly id: string
+	readonly url: string
+	readonly filename: string
+	readonly status: DownloadStatus
+	readonly priority: number
+	readonly totalBytes: number | null
+	readonly downloadedBytes: number
+	readonly progress: number | null
+	readonly speedBytesPerSecond: number
+	readonly etaSeconds: number | null
+	readonly retryCount: number
+	readonly checksum: ChecksumView
+	readonly error: { readonly code: string; readonly message: string } | null
+	readonly segments: SegmentView[]
+	readonly folder: string
 }
 
 export type FlashView = { readonly kind: 'success' | 'error'; readonly message: string }
@@ -111,18 +112,20 @@ export type ShellData = { readonly csrf: string; readonly authRequired: boolean 
 export type LoginData = { readonly csrf: string; readonly flash: FlashView | null }
 
 export type StatsView = {
-  readonly speedBytesPerSecond: number
-  readonly active: number
-  readonly queued: number
-  readonly completedBytes: number
+	readonly speedBytesPerSecond: number
+	readonly active: number
+	readonly queued: number
+	readonly completedBytes: number
 }
 
 export type DashboardData = {
-  readonly csrf: string
-  readonly view: ViewState
-  readonly counts: Record<FilterName, number>
-  readonly stats: StatsView
-  readonly downloads: DownloadView[]
-  readonly flash: FlashView | null
-  readonly bandwidthBytesPerSecond: number
+	readonly csrf: string
+	readonly view: ViewState
+	readonly counts: Record<FilterName, number>
+	readonly stats: StatsView
+	readonly downloads: DownloadView[]
+	readonly flash: FlashView | null
+	readonly bandwidthBytesPerSecond: number
+	readonly locations: { readonly id: string; readonly label: string }[]
+	readonly canReveal: boolean
 }
