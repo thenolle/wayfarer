@@ -1,80 +1,125 @@
 /** @jsxImportSource @gambrel/view */
+import { Button, Input, Label, Textarea } from '@gambrel/components'
+import { ChevronDown, Plus, Search } from '@gambrel/icons'
+import type { IconComponent } from '@gambrel/icons'
 import type { Child } from '@gambrel/view'
 import { formatBytes } from '../format'
-import type { FilterName } from '../view-model'
+import { SORT_LABELS, SORTS } from '../view-model'
+import type { ViewState } from '../view-model'
 
-type Tone = 'primary' | 'quiet' | 'danger'
+type Tone = 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost'
 
-function CsrfFields(props: { csrf: string; filter: FilterName }): Child {
+const PRESETS: readonly { label: string; bytes: number }[] = [
+	{ label: 'No limit', bytes: 0 },
+	{ label: '1 MiB/s', bytes: 1024 * 1024 },
+	{ label: '5 MiB/s', bytes: 5 * 1024 * 1024 },
+	{ label: '10 MiB/s', bytes: 10 * 1024 * 1024 }
+]
+
+export function HiddenFields(props: { csrf: string; view: ViewState }): Child {
 	return (
 		<>
 			<input type="hidden" name="csrf" value={props.csrf} />
-			<input type="hidden" name="filter" value={props.filter} />
+			<input type="hidden" name="filter" value={props.view.filter} />
+			<input type="hidden" name="q" value={props.view.q} />
+			<input type="hidden" name="sort" value={props.view.sort} />
 		</>
 	)
 }
 
-export function AddForm(props: { csrf: string; filter: FilterName }): Child {
+export function AddForm(props: { csrf: string; view: ViewState }): Child {
 	return (
-		<form class="card add-form" method="post" action="/actions/add">
-			<CsrfFields csrf={props.csrf} filter={props.filter} />
-			<label class="sr-only" for="add-url">Download URL</label>
-			<input id="add-url" name="url" type="url" placeholder="Paste a download link" required autocomplete="off" />
-			<button type="submit" class="btn btn-primary">Add download</button>
-			<details class="add-options">
-				<summary>Options</summary>
-				<div class="options-grid">
-					<label for="add-priority">Priority (-100 to 100)</label>
-					<input id="add-priority" name="priority" type="number" min="-100" max="100" step="1" value={0} />
-					<label for="add-sha256">SHA-256 checksum</label>
-					<input id="add-sha256" name="sha256" type="text" placeholder="Optional" autocomplete="off" />
-				</div>
-			</details>
+		<form class="add-form" method="post" action="/actions/add">
+			<HiddenFields csrf={props.csrf} view={props.view} />
+			<Label for="add-url">Add downloads</Label>
+			<Textarea id="add-url" name="url" rows={2} required autocomplete="off" spellcheck={false} placeholder="Paste one or more links, one per line" />
+			<div class="add-actions">
+				<details class="add-options">
+					<summary>Options</summary>
+					<div class="options-grid">
+						<Label for="add-priority">Priority (-100 to 100)</Label>
+						<Input id="add-priority" name="priority" type="number" min="-100" max="100" step="1" value="0" />
+						<Label for="add-sha256">SHA-256 checksum</Label>
+						<Input id="add-sha256" name="sha256" type="text" placeholder="Single link only" autocomplete="off" />
+					</div>
+				</details>
+				<Button type="submit"><Plus size={16} /> Add</Button>
+			</div>
 		</form>
 	)
 }
 
-export function BandwidthForm(props: { csrf: string; filter: FilterName; bytesPerSecond: number }): Child {
-	const limited = props.bytesPerSecond > 0
-	const mib = props.bytesPerSecond / (1024 * 1024)
+export function SearchForm(props: { view: ViewState }): Child {
 	return (
-		<section class="card bandwidth" aria-labelledby="bandwidth-title">
-			<div>
-				<h2 id="bandwidth-title">Bandwidth limit</h2>
-				<p class="muted">{limited ? `Limited to ${formatBytes(props.bytesPerSecond)}/s across all downloads.` : 'No limit.'}</p>
-			</div>
-			<form method="post" action="/actions/bandwidth" class="inline-form">
-				<CsrfFields csrf={props.csrf} filter={props.filter} />
-				<label class="sr-only" for="bandwidth-amount">Speed</label>
-				<input id="bandwidth-amount" name="amount" type="number" min="0" step="any" value={limited ? Number(mib.toFixed(2)) : 0} />
-				<label class="sr-only" for="bandwidth-unit">Unit</label>
-				<select id="bandwidth-unit" name="unit">
-					<option value="kib">KiB/s</option>
-					<option value="mib" selected>MiB/s</option>
+		<form class="search-form" method="get" action="/">
+			<input type="hidden" name="filter" value={props.view.filter} />
+			<Label class="sr-only" for="search-q">Search downloads</Label>
+			<Input id="search-q" name="q" type="search" placeholder="Search name or link" value={props.view.q} autocomplete="off" />
+			<Label class="sr-only" for="sort">Sort by</Label>
+			<div class="gb-select-wrap sort-select">
+				<select id="sort" name="sort" class="gb-select">
+					{SORTS.map((name) => (
+						<option key={name} value={name} selected={name === props.view.sort}>
+							{SORT_LABELS[name]}
+						</option>
+					))}
 				</select>
-				<button type="submit" class="btn">Set limit</button>
+				<ChevronDown class="gb-select-icon" size={16} />
+			</div>
+			<Button type="submit" variant="secondary"><Search size={16} /> Apply</Button>
+		</form>
+	)
+}
+
+export function BandwidthForm(props: { csrf: string; view: ViewState; bytesPerSecond: number }): Child {
+	const limited = props.bytesPerSecond > 0
+	return (
+		<section class="bandwidth" aria-labelledby="bandwidth-title">
+			<h2 id="bandwidth-title" class="bandwidth-title">Speed limit</h2>
+			<p class="muted">{limited ? `Limited to ${formatBytes(props.bytesPerSecond)}/s across all downloads.` : 'No limit.'}</p>
+			<form method="post" action="/actions/bandwidth" class="preset-form">
+				<HiddenFields csrf={props.csrf} view={props.view} />
+				{PRESETS.map((preset) => (
+					<Button key={preset.bytes} type="submit" size="sm" variant={preset.bytes === props.bytesPerSecond ? 'default' : 'outline'} name="preset" value={String(preset.bytes)}>
+						{preset.label}
+					</Button>
+				))}
 			</form>
-			<p class="muted hint">Use 0 for no limit.</p>
+			<form method="post" action="/actions/bandwidth" class="custom-form">
+				<HiddenFields csrf={props.csrf} view={props.view} />
+				<Label class="sr-only" for="bandwidth-amount">Custom speed</Label>
+				<Input id="bandwidth-amount" name="amount" type="number" min="0" step="any" placeholder="Custom" />
+				<Label class="sr-only" for="bandwidth-unit">Unit</Label>
+				<div class="gb-select-wrap">
+					<select id="bandwidth-unit" name="unit" class="gb-select">
+						<option value="kib">KiB/s</option>
+						<option value="mib" selected>MiB/s</option>
+					</select>
+					<ChevronDown class="gb-select-icon" size={16} />
+				</div>
+				<Button type="submit" variant="secondary" size="sm">Set</Button>
+			</form>
 		</section>
 	)
 }
 
-export function ActionButton(props: { id: string, action: string, label: string, csrf: string, filter: FilterName, tone?: Tone }): Child {
+export function ActionButton(props: { id: string, action: string, label: string, icon: IconComponent, csrf: string, view: ViewState, variant?: Tone }): Child {
+	const Icon = props.icon
 	return (
 		<form class="inline" method="post" action={`/actions/downloads/${props.id}/${props.action}`}>
-			<CsrfFields csrf={props.csrf} filter={props.filter} />
-			<button type="submit" class={`btn btn-${props.tone ?? 'quiet'}`}>{props.label}</button>
+			<HiddenFields csrf={props.csrf} view={props.view} />
+			<Button type="submit" size="sm" variant={props.variant ?? 'outline'}><Icon size={14} /> {props.label}</Button>
 		</form>
 	)
 }
 
-export function PriorityForm(props: { id: string; priority: number; csrf: string; filter: FilterName }): Child {
+export function PriorityForm(props: { id: string; priority: number; csrf: string; view: ViewState }): Child {
 	return (
 		<form class="inline priority" method="post" action={`/actions/downloads/${props.id}/priority`}>
-			<CsrfFields csrf={props.csrf} filter={props.filter} />
-			<label class="sr-only" for={`priority-${props.id}`}>Priority</label>
-			<input id={`priority-${props.id}`} name="priority" type="number" min="-100" max="100" step="1" value={props.priority} />
-			<button type="submit" class="btn btn-quiet">Set priority</button>
+			<HiddenFields csrf={props.csrf} view={props.view} />
+			<Label class="sr-only" for={`priority-${props.id}`}>Priority</Label>
+			<Input id={`priority-${props.id}`} name="priority" type="number" min="-100" max="100" step="1" value={String(props.priority)} />
+			<Button type="submit" size="sm" variant="secondary">Set priority</Button>
 		</form>
 	)
 }

@@ -1,12 +1,15 @@
 import { parseLiveMessage } from '../shared/live-protocol'
 import type { DownloadLive } from '../shared/live-protocol'
-import { formatBytes, formatEta, formatSpeed, PROGRESS_SCALE, retryLabel, statusLabel } from './format'
+import { formatBytes, formatEta, formatPercent, formatSpeed, PROGRESS_SCALE, retryLabel } from './format'
 
 const REFRESH_DELAY_MS = 300
 const RECONNECT_BASE_MS = 1000
 const RECONNECT_MAX_MS = 30_000
 const RUNNING = new Set(['probing', 'downloading', 'verifying'])
+const REFRESHED = ['sidebar', 'stats', 'downloads']
 
+const speeds = new Map<string, number>()
+const activeIds = new Set<string>()
 let failures = 0
 let refreshTimer: number | undefined
 let refreshing = false
@@ -16,8 +19,35 @@ function setText(root: Element, field: string, value: string): void {
 	if (element !== null && element.textContent !== value) element.textContent = value
 }
 
+function setProgress(bar: Element | null, value: number, max: number): void {
+	if (!(bar instanceof HTMLElement)) return
+	const safeMax = Math.max(1, max)
+	const current = Math.min(safeMax, Math.max(0, value))
+	bar.setAttribute('aria-valuenow', String(current))
+	bar.setAttribute('aria-valuemax', String(safeMax))
+	const indicator = bar.firstElementChild
+	if (indicator instanceof HTMLElement) indicator.style.transform = `translateX(-${Math.round((100 - (current / safeMax) * 100) * 100) / 100}%)`
+}
+
 function rowFor(id: string): HTMLElement | null {
 	return document.querySelector<HTMLElement>(`[data-download="${CSS.escape(id)}"]`)
+}
+
+function track(update: DownloadLive): void {
+	const running = RUNNING.has(update.status)
+	speeds.set(update.id, running ? update.speedBytesPerSecond : 0)
+	if (running) activeIds.add(update.id)
+	else activeIds.delete(update.id)
+}
+
+function renderStats(): void {
+	let total = 0
+	for (const speed of speeds.values()) total += speed
+	const speedText = formatSpeed(total)
+	for (const element of document.querySelectorAll('[data-field="total-speed"]')) {
+		if (element.textContent !== speedText) element.textContent = speedText
+	}
+	for (const element of document.querySelectorAll('[data-field="active-count"]')) element.textContent = String(activeIds.size)
 }
 
 /**
@@ -36,31 +66,20 @@ function applyUpdate(update: DownloadLive): boolean {
 	setText(row, 'total', update.totalBytes === null ? 'unknown size' : formatBytes(update.totalBytes))
 	setText(row, 'speed', running ? formatSpeed(update.speedBytesPerSecond) : '—')
 	setText(row, 'eta', running ? formatEta(update.etaSeconds) : '—')
-	const bar = row.querySelector<HTMLProgressElement>('progress[data-field="progress"]')
-	if (bar !== null) {
-		if (update.progress === null) bar.removeAttribute('value')
-		else bar.value = Math.round(update.progress * PROGRESS_SCALE)
-	}
+	setText(row, 'percent', formatPercent(update.progress))
+	setProgress(row.querySelector('[data-field="progress"]'), Math.round((update.progress ?? 0) * PROGRESS_SCALE), PROGRESS_SCALE)
 	const retries = row.querySelector<HTMLElement>('[data-field="retries"]')
 	if (retries !== null) {
 		retries.hidden = update.retryCount === 0
 		retries.textContent = retryLabel(update.retryCount)
 	}
 	for (const segment of update.segments) {
-		const segmentBar = row.querySelector<HTMLProgressElement>(`progress[data-segment="${segment.index}"]`)
-		if (segmentBar === null) continue
-		segmentBar.max = Math.max(1, segment.totalBytes)
-		segmentBar.value = segment.downloadedBytes
-		segmentBar.dataset['status'] = segment.status
+		const bar = row.querySelector<HTMLElement>(`[data-segment="${segment.index}"]`)
+		if (bar === null) continue
+		bar.dataset['status'] = segment.status
+		setProgress(bar, segment.downloadedBytes, segment.totalBytes)
 	}
-	if (statusChanged) {
-		row.dataset['status'] = update.status
-		const badge = row.querySelector<HTMLElement>('[data-field="status"]')
-		if (badge !== null) {
-			badge.dataset['status'] = update.status
-			badge.textContent = statusLabel(update.status)
-		}
-	}
+	if (statusChanged) row.dataset['status'] = update.status
 	return statusChanged
 }
 
@@ -89,11 +108,12 @@ async function refresh(): Promise<void> {
 			return
 		}
 		const fresh = new DOMParser().parseFromString(await response.text(), 'text/html')
-		for (const id of ['filters', 'downloads']) {
+		for (const id of REFRESHED) {
 			const next = fresh.getElementById(id)
 			const current = document.getElementById(id)
 			if (next !== null && current !== null) current.replaceWith(next)
 		}
+		renderStats()
 	} catch {
 		return
 	} finally {
@@ -102,42 +122,54 @@ async function refresh(): Promise<void> {
 }
 
 function setConnection(state: 'connected' | 'disconnected'): void {
-	document.documentElement.dataset['live'] = state
+  document.documentElement.dataset['live'] = state
 }
 
 function connect(): void {
-	const url = new URL('/ws', location.href)
-	url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-	const socket = new WebSocket(url)
-	socket.addEventListener('open', () => {
-		failures = 0
-		setConnection('connected')
-	})
-	socket.addEventListener('message', (event) => {
-		const message = parseLiveMessage(String(event.data))
-		if (message === null) return
-		let needsRefresh = false
-		for (const download of message.downloads) {
-			if (applyUpdate(download)) needsRefresh = true
-		}
-		if (message.type === 'snapshot') {
-			const known = new Set(message.downloads.map((download) => download.id))
-			for (const row of document.querySelectorAll<HTMLElement>('[data-download]')) {
-				const id = row.dataset['download']
-				if (id !== undefined && !known.has(id)) needsRefresh = true
-			}
-		} else if (message.removed.some((id) => rowFor(id) !== null)) {
-			needsRefresh = true
-		}
-		if (needsRefresh) scheduleRefresh()
-	})
-	socket.addEventListener('close', () => {
-		setConnection('disconnected')
-		const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** failures)
-		failures += 1
-		window.setTimeout(connect, delay)
-	})
+  const url = new URL('/ws', location.href)
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+  const socket = new WebSocket(url)
+  socket.addEventListener('open', () => {
+    failures = 0
+    setConnection('connected')
+  })
+  socket.addEventListener('message', (event) => {
+    const message = parseLiveMessage(String(event.data))
+    if (message === null) return
+    if (message.type === 'snapshot') {
+      speeds.clear()
+      activeIds.clear()
+    } else {
+      for (const id of message.removed) {
+        speeds.delete(id)
+        activeIds.delete(id)
+      }
+    }
+    let needsRefresh = false
+    for (const download of message.downloads) {
+      track(download)
+      if (applyUpdate(download)) needsRefresh = true
+    }
+    if (message.type === 'snapshot') {
+      const known = new Set(message.downloads.map((download) => download.id))
+      for (const row of document.querySelectorAll<HTMLElement>('[data-download]')) {
+        const id = row.dataset['download']
+        if (id !== undefined && !known.has(id)) needsRefresh = true
+      }
+    } else if (message.removed.some((id) => rowFor(id) !== null)) {
+      needsRefresh = true
+    }
+    renderStats()
+    if (needsRefresh) scheduleRefresh()
+  })
+  socket.addEventListener('close', () => {
+    setConnection('disconnected')
+    const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** failures)
+    failures += 1
+    window.setTimeout(connect, delay)
+  })
 }
+
 
 /**
  * Starts live updates on pages that show downloads. Reconnects with a growing
@@ -145,6 +177,6 @@ function connect(): void {
  * links are plain HTML.
  */
 export function startLive(): void {
-	if (document.querySelector('[data-live-root]') === null) return
-	connect()
+  if (document.querySelector('[data-live-root]') === null) return
+  connect()
 }

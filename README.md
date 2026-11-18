@@ -30,9 +30,10 @@ Available today:
   files on disk.
 - A JSON REST API with bearer-token authentication. See
   [docs/api/rest.md](docs/api/rest.md).
-- A server-rendered web dashboard (Gambrel) that works without JavaScript, with
-  sessions, CSRF protection, dark mode and live updates over WebSockets. See
-  [docs/architecture/dashboard.md](docs/architecture/dashboard.md).
+- A server-rendered dashboard built with Gambrel components and icons. It works
+  without JavaScript and offers search, sorting, bulk actions, batch adding,
+  speed presets, a detail panel, dark mode, keyboard shortcuts and live updates
+  over WebSockets. See [docs/architecture/dashboard.md](docs/architecture/dashboard.md).
 
 Not yet available: Docker, systemd, Windows and macOS service configurations.
 
