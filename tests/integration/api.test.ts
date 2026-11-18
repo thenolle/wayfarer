@@ -228,6 +228,7 @@ describe('authentication and request guards', () => {
 		expect((await attempt('http://evil.example')).status).toBe(403)
 		expect((await attempt(null, { 'sec-fetch-site': 'cross-site' })).status).toBe(403)
 		expect((await attempt('null')).status).toBe(403)
+		expect((await attempt('null', { 'sec-fetch-site': 'same-origin' })).status).toBe(404)
 		expect((await attempt(`http://${host}`)).status).toBe(404)
 		expect((await attempt(null)).status).toBe(404)
 	})

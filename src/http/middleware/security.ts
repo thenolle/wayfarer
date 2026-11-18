@@ -41,22 +41,22 @@ export function buildAllowedHosts(config: Pick<AppConfig, 'host' | 'allowedHosts
  * scripts, styles and connections, and may post forms only to themselves.
  */
 export function securityHeaders(): Middleware {
-  return async (context, next) => {
-    const response = await next()
-    const defaults: Record<string, string> = {
-      'x-content-type-options': 'nosniff',
-      'referrer-policy': 'no-referrer',
-      'x-frame-options': 'DENY',
-      'cross-origin-resource-policy': 'same-origin',
-      'cache-control': 'no-store',
-      'content-security-policy': context.url.pathname.startsWith(API_PREFIX) ? API_CSP : PAGE_CSP
-    }
-    return withHeaders(response, (headers) => {
-      for (const [name, value] of Object.entries(defaults)) {
-        if (!headers.has(name)) headers.set(name, value)
-      }
-    })
-  }
+	return async (context, next) => {
+		const response = await next()
+		const defaults: Record<string, string> = {
+			'x-content-type-options': 'nosniff',
+			'referrer-policy': 'same-origin',
+			'x-frame-options': 'DENY',
+			'cross-origin-resource-policy': 'same-origin',
+			'cache-control': 'no-store',
+			'content-security-policy': context.url.pathname.startsWith(API_PREFIX) ? API_CSP : PAGE_CSP
+		}
+		return withHeaders(response, (headers) => {
+			for (const [name, value] of Object.entries(defaults)) {
+				if (!headers.has(name)) headers.set(name, value)
+			}
+		})
+	}
 }
 
 /**
@@ -109,14 +109,20 @@ export function authGuard(token: string | null): Middleware {
 /**
  * Blocks cross-site requests that change state. A request with an `Origin`
  * header must come from the same origin as the `Host` it addresses, and a
- * browser-declared `Sec-Fetch-Site: cross-site` is refused. Requests without an
- * `Origin` (command-line clients, scripts) are left to authentication.
+ * browser-declared `Sec-Fetch-Site: cross-site` is refused. `Origin: null` is
+ * accepted only with `Sec-Fetch-Site: same-origin`. Requests without an `Origin`
+ * (command-line clients, scripts) are left to authentication.
  */
 export function originGuard(): Middleware {
 	return (context, next) => {
 		if (SAFE_METHODS.has(context.method)) return next()
-		if (context.request.headers.get('sec-fetch-site') === 'cross-site') return errorResponse(403, 'forbidden_origin', 'Cross-site requests are not allowed')
+		const fetchSite = context.request.headers.get('sec-fetch-site')
+		if (fetchSite === 'cross-site') return errorResponse(403, 'forbidden_origin', 'Cross-site requests are not allowed')
 		const origin = context.request.headers.get('origin')
+		if (origin === 'null') {
+			if (fetchSite !== 'same-origin') return errorResponse(403, 'forbidden_origin', 'Cross-site requests are not allowed')
+			return next()
+		}
 		if (origin !== null) {
 			let originHost: string | null
 			try { originHost = new URL(origin).host.toLowerCase() } catch { originHost = null }
