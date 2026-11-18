@@ -1,0 +1,25 @@
+{
+	"name": "@wayfarer/website",
+	"version": "0.1.0",
+	"private": true,
+	"license": "PolyForm-Strict-1.0.0",
+	"type": "module",
+	"description": "Documentation site that renders the Markdown files in docs/.",
+	"scripts": {
+		"dev": "bun scripts/serve.ts",
+		"build": "bun scripts/build.ts",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@gambrel/browser": "^0.2.3",
+		"@gambrel/components": "^0.2.3",
+		"@gambrel/icons": "^0.2.3",
+		"@gambrel/reactivity": "^0.2.3",
+		"@gambrel/view": "^0.2.3"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.4.4",
+		"typescript": "^7.0.2"
+	}
+}

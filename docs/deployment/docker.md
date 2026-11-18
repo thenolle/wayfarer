@@ -23,16 +23,30 @@ start without `WAYFARER_AUTH_TOKEN` (16 or more characters) and
 
 ## Choosing where files go
 
-By default downloads are stored in the `wayfarer-data` volume. To store them on
-the host, mount a directory over the downloads folder:
+By default downloads are stored in the `wayfarer-data` volume. To store them on the host, mount a directory over the downloads folder:
 
 ```yaml
-    volumes:
-      - wayfarer-data:/data
-      - /srv/downloads:/data/downloads
+volumes:
+	- wayfarer-data:/data
+	- /srv/downloads:/data/downloads
 ```
 
-The directory must be writable by user ID 1000 (the `bun` user).
+To offer more places in the dashboard's **Save to** menu, mount each one and name it:
+
+```yaml
+environment:
+	WAYFARER_LOCATIONS: Games=/mnt/games,Movies=/mnt/movies
+volumes:
+	- wayfarer-data:/data
+	- /srv/games:/mnt/games
+	- /srv/movies:/mnt/movies
+```
+
+Every mounted directory must be writable by user ID 1000 (the `bun` user). "Show in folder" is unavailable in Docker because the container does not listen on a loopback address.
+
+## Pinning the Bun version
+
+The Dockerfile pins Bun to the version in `.bun-version` (`ARG BUN_VERSION=1.4.4`). Build with another version using `docker build --build-arg BUN_VERSION=<version> .`.
 
 ## Stopping, health and upgrades
 

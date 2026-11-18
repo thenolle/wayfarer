@@ -1,0 +1,46 @@
+{
+  "sections": [
+    {
+      "title": "Start here",
+      "pages": [
+        { "path": "getting-started", "title": "Getting started", "summary": "Install Wayfarer, start it and add your first download." },
+        { "path": "configuration", "title": "Configuration", "summary": "Every environment variable, its default, its limits and what it does." }
+      ]
+    },
+    {
+      "title": "Guides",
+      "pages": [
+        { "path": "guides/dashboard", "title": "Using the dashboard", "summary": "Add links, check file names, choose where files are saved, control downloads and use the keyboard shortcuts." },
+        { "path": "guides/resolvers", "title": "Supported hosts", "summary": "Which download hosts Wayfarer understands, and what to do with hosts that need a browser." },
+        { "path": "guides/troubleshooting", "title": "Troubleshooting", "summary": "Fix blocked requests, HTTP 403 errors, missing styles, save-location errors and more." }
+      ]
+    },
+    {
+      "title": "Reference",
+      "pages": [
+        { "path": "api/rest", "title": "REST API", "summary": "Endpoints, request fields, status codes and security rules of the JSON API." },
+        { "path": "security", "title": "Security model", "summary": "How Wayfarer protects your machine and your network, and the limits you should know about." }
+      ]
+    },
+    {
+      "title": "Architecture",
+      "pages": [
+        { "path": "architecture/overview", "title": "Overview", "summary": "Modules, rules, download states, part files and recovery." },
+        { "path": "architecture/lifecycle", "title": "Download lifecycle" },
+        { "path": "architecture/dashboard", "title": "Dashboard internals", "summary": "How the server-rendered dashboard, sessions, CSRF protection and live updates work." },
+        { "path": "architecture/resolvers-and-networking", "title": "Resolvers and networking", "summary": "How links become files, how destinations are checked, and the known DNS rebinding limit." }
+      ]
+    },
+    {
+      "title": "Deployment",
+      "pages": [
+        { "path": "deployment/docker", "title": "Docker", "summary": "Run Wayfarer with Docker Compose, choose where files go and upgrade safely." },
+        { "path": "deployment/linux", "title": "Linux (systemd)" },
+        { "path": "deployment/windows", "title": "Windows (Task Scheduler)" },
+        { "path": "deployment/macos", "title": "macOS (launchd)" },
+        { "path": "deployment/reverse-proxy", "title": "Reverse proxy and TLS" },
+        { "path": "deployment/operations", "title": "Operations", "summary": "Health checks, logs, shutdown, backups, upgrades and a troubleshooting table." }
+      ]
+    }
+  ]
+}

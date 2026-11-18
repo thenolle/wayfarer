@@ -45,10 +45,13 @@ written by a newer version is refused rather than downgraded.
 
 ## Troubleshooting
 
-| Symptom                                               | Likely cause                                                                                              |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| The service exits at start with "configuration error" | A required variable is missing; the message names it.                                                     |
-| Pages answer `421`                                    | The `Host` is not in `WAYFARER_ALLOWED_HOSTS`.                                                            |
-| Sign-in loops back to the sign-in page                | Cookies are blocked, or the proxy does not forward `Host`.                                                |
-| No live progress                                      | The proxy does not pass WebSocket upgrades on `/ws`.                                                      |
-| A download fails with `blocked_destination`           | The address is private or reserved; allow it with `WAYFARER_ALLOW_PRIVATE_NETWORKS` only if you trust it. |
+| Symptom                                               | Likely cause                                                                                                                                                            |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The service exits at start with "configuration error" | A required variable is missing; the message names it.                                                                                                                   |
+| Pages answer `421`                                    | The `Host` is not in `WAYFARER_ALLOWED_HOSTS`.                                                                                                                          |
+| Sign-in loops back to the sign-in page                | Cookies are blocked, or the proxy does not forward `Host`.                                                                                                              |
+| No live progress                                      | The proxy does not pass WebSocket upgrades on `/ws`.                                                                                                                    |
+| A download fails with `blocked_destination`           | The address is private or reserved; allow it with `WAYFARER_ALLOW_PRIVATE_NETWORKS` only if you trust it.                                                               |
+| A download fails with `HTTP 403` at the landing page  | The host blocks non-browser clients, often with a Cloudflare challenge. See the troubleshooting guide; `bun scripts/trace-resolver.ts <url>` shows which request fails. |
+| Forms answer `forbidden_origin`                       | The proxy changes or drops `Origin` or `Host`. Forward both unchanged.                                                                                                  |
+| `That folder cannot be created or written to`         | A save location is missing or not writable.                                                                                                                             |
