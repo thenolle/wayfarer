@@ -70,3 +70,6 @@ unsatisfiable range, `421` host name not allowed, `503` shutting down.
 - There is no rate limiting on the API.
 - Browser sessions and CSRF tokens for the dashboard are not part of this API
   yet; scripts and tools use the bearer token.
+- The API adds downloads to the main download directory. Save locations are
+  chosen in the dashboard only.
+- The dashboard's link check (`/actions/preview`) is not part of this API.

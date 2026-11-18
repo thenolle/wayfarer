@@ -14,7 +14,7 @@
 		"build": "bun scripts/build.ts",
 		"start": "bun dist/server/index.js",
 		"typecheck": "tsc --noEmit",
-		"test": "bun test",
+		"test": "bun test ./tests",
 		"licenses": "bun scripts/licenses.ts",
 		"check": "bun run generate && bun run typecheck && bun run test && bun run build"
 	},

@@ -123,6 +123,21 @@ All settings are environment variables. Defaults are chosen to be safe.
 
 See [docs/architecture/overview.md](docs/architecture/overview.md).
 
+## Documentation
+
+The documentation lives in [docs/](docs) and is published as a website at
+<https://thenolle.github.io/wayfarer/> whenever `docs/` or `website/` change on
+`master`. To preview it while you write:
+
+```bash
+cd website
+bun install
+bun run dev   # http://localhost:4321, reads ../docs on every request
+```
+
+Add a page by creating a Markdown file in `docs/` and listing it in
+`docs/nav.json`.
+
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
