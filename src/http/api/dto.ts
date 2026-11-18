@@ -51,7 +51,7 @@ function toPublicSegment(segment: SegmentRecord): PublicSegment {
   }
 }
 
-function progressOf(record: DownloadRecord): number | null {
+export function progressOf(record: DownloadRecord): number | null {
   if (record.status === 'completed') return 1
   if (record.totalBytes === null || record.totalBytes === 0) return null
   return Math.min(1, record.downloadedBytes / record.totalBytes)

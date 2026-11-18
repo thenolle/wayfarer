@@ -9,10 +9,13 @@
     "bun": ">=1.4.4"
   },
   "scripts": {
-    "start": "bun run src/index.ts",
+    "generate": "bun scripts/generate.ts",
+    "dev": "bun scripts/dev.ts",
+    "build": "bun scripts/build.ts",
+    "start": "bun dist/server/index.js",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "check": "bun run typecheck && bun run test"
+    "check": "bun run generate && bun run typecheck && bun run test && bun run build"
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",
