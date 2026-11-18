@@ -1,4 +1,6 @@
 /** @jsxImportSource @gambrel/view */
+import { Button } from '@gambrel/components'
+import { Download, LogOut, Moon, Sun } from '@gambrel/icons'
 import type { LayoutProps, LoaderData, RouteParams } from '@gambrel/router'
 import type { Child } from '@gambrel/view'
 import type { loader } from './layout.server'
@@ -8,14 +10,19 @@ export default function AppLayout(props: LayoutProps<RouteParams, LoaderData<typ
 	return (
 		<div class="shell">
 			<header class="topbar">
-				<a class="brand" href="/">Wayfarer</a>
+				<a class="brand" href="/"><Download size={20} /> <span>Wayfarer</span></a>
 				<div class="topbar-actions">
-					<span class="live" title="Live updates"><span class="live-dot" /></span>
-					<button type="button" class="btn btn-quiet" data-theme-toggle hidden>Theme</button>
+					<span class="live" title="Live updates">
+						<span class="live-dot" />
+					</span>
+					<Button variant="ghost" size="icon" data-theme-toggle data-js-only aria-label="Toggle theme">
+						<Sun class="theme-sun" size={18} />
+						<Moon class="theme-moon" size={18} />
+					</Button>
 					{data.authRequired ? (
 						<form method="post" action="/actions/logout">
 							<input type="hidden" name="csrf" value={data.csrf} />
-							<button type="submit" class="btn btn-quiet">Sign out</button>
+							<Button type="submit" variant="ghost" size="sm"><LogOut size={16} /> Sign out</Button>
 						</form>
 					) : null}
 				</div>

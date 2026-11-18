@@ -1,19 +1,59 @@
 /** @jsxImportSource @gambrel/view */
+import { Alert, AlertDescription, StatusBadge as GambrelStatusBadge } from '@gambrel/components'
+import type { StatusTone } from '@gambrel/components'
+import { ArrowDown, Clock, CircleAlert, CircleCheck, CirclePause, CircleX, Search, ShieldCheck } from '@gambrel/icons'
+import type { IconComponent } from '@gambrel/icons'
 import type { Child } from '@gambrel/view'
 import type { DownloadStatus } from '../../downloads/domain/status'
 import { statusLabel } from '../format'
-import { FILTER_LABELS, FILTERS } from '../view-model'
-import type { FilterName, FlashView } from '../view-model'
+import type { FlashView } from '../view-model'
+
+const TONES: Readonly<Record<DownloadStatus, StatusTone>> = {
+  queued: 'neutral',
+  probing: 'info',
+  downloading: 'info',
+  verifying: 'info',
+  paused: 'warning',
+  completed: 'success',
+  failed: 'danger',
+  cancelled: 'neutral'
+}
+
+const ICONS: Readonly<Record<DownloadStatus, IconComponent>> = {
+  queued: Clock,
+  probing: Search,
+  downloading: ArrowDown,
+  verifying: ShieldCheck,
+  paused: CirclePause,
+  completed: CircleCheck,
+  failed: CircleAlert,
+  cancelled: CircleX
+}
 
 export function StatusBadge(props: { status: DownloadStatus }): Child {
-	return (<span class="badge" data-field="status" data-status={props.status}>{statusLabel(props.status)}</span>)
+  return (
+    <GambrelStatusBadge tone={TONES[props.status]} data-field="status" data-status={props.status}>
+      {statusLabel(props.status)}
+    </GambrelStatusBadge>
+  )
+}
+
+export function StatusIcon(props: { status: DownloadStatus }): Child {
+  const Icon = ICONS[props.status]
+  return (
+    <span class={`status-icon tone-${TONES[props.status]}`}>
+      <Icon size={20} />
+    </span>
+  )
 }
 
 export function Flash(props: { flash: FlashView | null }): Child {
-	if (props.flash === null) return null
-	return (<p class={`flash flash-${props.flash.kind}`} role={props.flash.kind === 'error' ? 'alert' : 'status'}>{props.flash.message}</p>)
-}
-
-export function FilterTabs(props: { filter: FilterName; counts: Record<FilterName, number> }): Child {
-	return (<nav id="filters" class="filters" aria-label="Filter downloads">{FILTERS.map((name) => (<a key={name} class="filter" href={name === 'all' ? '/' : `/?filter=${name}`} aria-current={name === props.filter ? 'page' : null}>{FILTER_LABELS[name]} <span class="count">{props.counts[name]}</span></a>))}</nav>)
+  if (props.flash === null) return null
+  const error = props.flash.kind === 'error'
+  return (
+    <Alert variant={error ? 'destructive' : 'default'} role={error ? 'alert' : 'status'} class="flash">
+      {error ? <CircleAlert size={16} /> : <CircleCheck size={16} />}
+      <AlertDescription>{props.flash.message}</AlertDescription>
+    </Alert>
+  )
 }

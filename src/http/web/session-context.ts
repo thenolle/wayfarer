@@ -53,11 +53,11 @@ export class SessionResolver {
 	 * Adds `Set-Cookie` to responses for requests that received a new session.
 	 */
 	middleware(): Middleware {
-		return async (ctx, next) => {
+		return async (context, next) => {
 			const response = await next()
-			const entry = this.resolved.get(ctx.request)
+			const entry = this.resolved.get(context.request)
 			if (entry === undefined || !entry.isNew) return response
-			const cookie = serializeSessionCookie(SESSION_COOKIE, entry.session.id, this.store.ttlSeconds, isSecureRequest(ctx.request))
+			const cookie = serializeSessionCookie(SESSION_COOKIE, entry.session.id, this.store.ttlSeconds, isSecureRequest(context.request))
 			return withHeaders(response, (headers) => headers.append('set-cookie', cookie))
 		}
 	}
