@@ -7,47 +7,81 @@ const RECONNECT_BASE_MS = 1000
 const RECONNECT_MAX_MS = 30_000
 const RUNNING = new Set(['probing', 'downloading', 'verifying'])
 const REFRESHED = ['sidebar', 'stats', 'downloads']
+const BASE_TITLE = 'Wayfarer'
 
 const speeds = new Map<string, number>()
+const sizes = new Map<string, { done: number; total: number }>()
 const activeIds = new Set<string>()
 let failures = 0
 let refreshTimer: number | undefined
 let refreshing = false
 
 function setText(root: Element, field: string, value: string): void {
-	const element = root.querySelector(`[data-field="${field}"]`)
-	if (element !== null && element.textContent !== value) element.textContent = value
+  const element = root.querySelector(`[data-field="${field}"]`)
+  if (element !== null && element.textContent !== value) element.textContent = value
 }
 
 function setProgress(bar: Element | null, value: number, max: number): void {
-	if (!(bar instanceof HTMLElement)) return
-	const safeMax = Math.max(1, max)
-	const current = Math.min(safeMax, Math.max(0, value))
-	bar.setAttribute('aria-valuenow', String(current))
-	bar.setAttribute('aria-valuemax', String(safeMax))
-	const indicator = bar.firstElementChild
-	if (indicator instanceof HTMLElement) indicator.style.transform = `translateX(-${Math.round((100 - (current / safeMax) * 100) * 100) / 100}%)`
+  if (!(bar instanceof HTMLElement)) return
+  const safeMax = Math.max(1, max)
+  const current = Math.min(safeMax, Math.max(0, value))
+  bar.setAttribute('aria-valuenow', String(current))
+  bar.setAttribute('aria-valuemax', String(safeMax))
+  const indicator = bar.firstElementChild
+  if (indicator instanceof HTMLElement) {
+    indicator.style.transform = `translateX(-${Math.round((100 - (current / safeMax) * 100) * 100) / 100}%)`
+  }
 }
 
 function rowFor(id: string): HTMLElement | null {
-	return document.querySelector<HTMLElement>(`[data-download="${CSS.escape(id)}"]`)
+  return document.querySelector<HTMLElement>(`[data-download="${CSS.escape(id)}"]`)
 }
 
 function track(update: DownloadLive): void {
-	const running = RUNNING.has(update.status)
-	speeds.set(update.id, running ? update.speedBytesPerSecond : 0)
-	if (running) activeIds.add(update.id)
-	else activeIds.delete(update.id)
+  const running = RUNNING.has(update.status)
+  speeds.set(update.id, running ? update.speedBytesPerSecond : 0)
+  if (running) activeIds.add(update.id)
+  else activeIds.delete(update.id)
+  if (running && update.totalBytes !== null) sizes.set(update.id, { done: update.downloadedBytes, total: update.totalBytes })
+  else sizes.delete(update.id)
+}
+
+function forget(id: string): void {
+  speeds.delete(id)
+  sizes.delete(id)
+  activeIds.delete(id)
+}
+
+function clearTracking(): void {
+  speeds.clear()
+  sizes.clear()
+  activeIds.clear()
 }
 
 function renderStats(): void {
-	let total = 0
-	for (const speed of speeds.values()) total += speed
-	const speedText = formatSpeed(total)
-	for (const element of document.querySelectorAll('[data-field="total-speed"]')) {
-		if (element.textContent !== speedText) element.textContent = speedText
-	}
-	for (const element of document.querySelectorAll('[data-field="active-count"]')) element.textContent = String(activeIds.size)
+  let speed = 0
+  for (const value of speeds.values()) speed += value
+  let done = 0
+  let total = 0
+  for (const size of sizes.values()) {
+    done += size.done
+    total += size.total
+  }
+  const ratio = total > 0 ? Math.min(1, done / total) : null
+  const speedText = formatSpeed(speed)
+
+  for (const element of document.querySelectorAll('[data-field="total-speed"]')) {
+    if (element.textContent !== speedText) element.textContent = speedText
+  }
+  for (const element of document.querySelectorAll('[data-field="active-count"]')) {
+    element.textContent = String(activeIds.size)
+  }
+  for (const wrap of document.querySelectorAll<HTMLElement>('[data-field="overall-wrap"]')) {
+    wrap.hidden = activeIds.size === 0
+    setProgress(wrap.querySelector('[data-field="overall"]'), Math.round((ratio ?? 0) * PROGRESS_SCALE), PROGRESS_SCALE)
+    setText(wrap, 'overall-percent', formatPercent(ratio))
+  }
+  document.title = activeIds.size === 0 ? BASE_TITLE : `${formatPercent(ratio)} · ${speedText} · ${BASE_TITLE}`
 }
 
 /**
@@ -58,37 +92,44 @@ function renderStats(): void {
  * apply, so the list is then reloaded from the server.
  */
 function applyUpdate(update: DownloadLive): boolean {
-	const row = rowFor(update.id)
-	if (row === null) return true
-	const running = RUNNING.has(update.status)
-	const statusChanged = row.dataset['status'] !== update.status
-	setText(row, 'downloaded', formatBytes(update.downloadedBytes))
-	setText(row, 'total', update.totalBytes === null ? 'unknown size' : formatBytes(update.totalBytes))
-	setText(row, 'speed', running ? formatSpeed(update.speedBytesPerSecond) : '—')
-	setText(row, 'eta', running ? formatEta(update.etaSeconds) : '—')
-	setText(row, 'percent', formatPercent(update.progress))
-	setProgress(row.querySelector('[data-field="progress"]'), Math.round((update.progress ?? 0) * PROGRESS_SCALE), PROGRESS_SCALE)
-	const retries = row.querySelector<HTMLElement>('[data-field="retries"]')
-	if (retries !== null) {
-		retries.hidden = update.retryCount === 0
-		retries.textContent = retryLabel(update.retryCount)
-	}
-	for (const segment of update.segments) {
-		const bar = row.querySelector<HTMLElement>(`[data-segment="${segment.index}"]`)
-		if (bar === null) continue
-		bar.dataset['status'] = segment.status
-		setProgress(bar, segment.downloadedBytes, segment.totalBytes)
-	}
-	if (statusChanged) row.dataset['status'] = update.status
-	return statusChanged
+  const row = rowFor(update.id)
+  if (row === null) return true
+  const running = RUNNING.has(update.status)
+  const statusChanged = row.dataset['status'] !== update.status
+
+  setText(row, 'downloaded', formatBytes(update.downloadedBytes))
+  setText(row, 'total', update.totalBytes === null ? 'unknown size' : formatBytes(update.totalBytes))
+  setText(row, 'speed', running ? formatSpeed(update.speedBytesPerSecond) : '—')
+  setText(row, 'eta', running ? formatEta(update.etaSeconds) : '—')
+  setText(row, 'percent', formatPercent(update.progress))
+
+  const bar = row.querySelector('[data-field="progress"]')
+  setProgress(bar, Math.round((update.progress ?? 0) * PROGRESS_SCALE), PROGRESS_SCALE)
+  if (bar instanceof HTMLElement) bar.toggleAttribute('data-indeterminate', running && update.progress === null)
+
+  const retries = row.querySelector<HTMLElement>('[data-field="retries"]')
+  if (retries !== null) {
+    retries.hidden = update.retryCount === 0
+    retries.textContent = retryLabel(update.retryCount)
+  }
+
+  for (const segment of update.segments) {
+    const segmentBar = row.querySelector<HTMLElement>(`[data-segment="${segment.index}"]`)
+    if (segmentBar === null) continue
+    segmentBar.dataset['status'] = segment.status
+    setProgress(segmentBar, segment.downloadedBytes, segment.totalBytes)
+  }
+
+  if (statusChanged) row.dataset['status'] = update.status
+  return statusChanged
 }
 
 function scheduleRefresh(): void {
-	if (refreshTimer !== undefined) return
-	refreshTimer = window.setTimeout(() => {
-		refreshTimer = undefined
-		void refresh()
-	}, REFRESH_DELAY_MS)
+  if (refreshTimer !== undefined) return
+  refreshTimer = window.setTimeout(() => {
+    refreshTimer = undefined
+    void refresh()
+  }, REFRESH_DELAY_MS)
 }
 
 /**
@@ -96,29 +137,36 @@ function scheduleRefresh(): void {
  * If the session ended, the page reloads and the server sends the sign-in page.
  */
 async function refresh(): Promise<void> {
-	if (refreshing) {
-		scheduleRefresh()
-		return
-	}
-	refreshing = true
-	try {
-		const response = await fetch(location.href, { headers: { accept: 'text/html' }, credentials: 'same-origin', cache: 'no-store' })
-		if (!response.ok || response.redirected) {
-			location.reload()
-			return
-		}
-		const fresh = new DOMParser().parseFromString(await response.text(), 'text/html')
-		for (const id of REFRESHED) {
-			const next = fresh.getElementById(id)
-			const current = document.getElementById(id)
-			if (next !== null && current !== null) current.replaceWith(next)
-		}
-		renderStats()
-	} catch {
-		return
-	} finally {
-		refreshing = false
-	}
+  if (refreshing) {
+    scheduleRefresh()
+    return
+  }
+  refreshing = true
+  try {
+    const response = await fetch(location.href, {
+      headers: { accept: 'text/html' },
+      credentials: 'same-origin',
+      cache: 'no-store'
+    })
+    if (!response.ok || response.redirected) {
+      location.reload()
+      return
+    }
+    const wasOpen = document.querySelector<HTMLDetailsElement>('details.bandwidth')?.open
+    const fresh = new DOMParser().parseFromString(await response.text(), 'text/html')
+    for (const id of REFRESHED) {
+      const next = fresh.getElementById(id)
+      const current = document.getElementById(id)
+      if (next !== null && current !== null) current.replaceWith(next)
+    }
+    const panel = document.querySelector<HTMLDetailsElement>('details.bandwidth')
+    if (panel !== null && wasOpen !== undefined) panel.open = wasOpen
+    renderStats()
+  } catch {
+    return
+  } finally {
+    refreshing = false
+  }
 }
 
 function setConnection(state: 'connected' | 'disconnected'): void {
@@ -129,22 +177,19 @@ function connect(): void {
   const url = new URL('/ws', location.href)
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
   const socket = new WebSocket(url)
+
   socket.addEventListener('open', () => {
     failures = 0
     setConnection('connected')
   })
+
   socket.addEventListener('message', (event) => {
     const message = parseLiveMessage(String(event.data))
     if (message === null) return
-    if (message.type === 'snapshot') {
-      speeds.clear()
-      activeIds.clear()
-    } else {
-      for (const id of message.removed) {
-        speeds.delete(id)
-        activeIds.delete(id)
-      }
-    }
+
+    if (message.type === 'snapshot') clearTracking()
+    else for (const id of message.removed) forget(id)
+
     let needsRefresh = false
     for (const download of message.downloads) {
       track(download)
@@ -162,6 +207,7 @@ function connect(): void {
     renderStats()
     if (needsRefresh) scheduleRefresh()
   })
+
   socket.addEventListener('close', () => {
     setConnection('disconnected')
     const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** failures)
@@ -169,7 +215,6 @@ function connect(): void {
     window.setTimeout(connect, delay)
   })
 }
-
 
 /**
  * Starts live updates on pages that show downloads. Reconnects with a growing

@@ -10,7 +10,10 @@ export default function AppLayout(props: LayoutProps<RouteParams, LoaderData<typ
 	return (
 		<div class="shell">
 			<header class="topbar">
-				<a class="brand" href="/"><Download size={20} /> <span>Wayfarer</span></a>
+				<a class="brand" href="/">
+          <span class="brand-mark"><Download size={18} /></span>
+          <span class="brand-name">Wayfarer</span>
+        </a>
 				<div class="topbar-actions">
 					<span class="live" title="Live updates">
 						<span class="live-dot" />

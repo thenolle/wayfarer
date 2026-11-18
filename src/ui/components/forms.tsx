@@ -1,6 +1,6 @@
 /** @jsxImportSource @gambrel/view */
 import { Button, Input, Label, Textarea } from '@gambrel/components'
-import { ChevronDown, Plus, Search } from '@gambrel/icons'
+import { ChevronDown, Plus, Search, Gauge } from '@gambrel/icons'
 import type { IconComponent } from '@gambrel/icons'
 import type { Child } from '@gambrel/view'
 import { formatBytes } from '../format'
@@ -97,32 +97,38 @@ export function SearchForm(props: { view: ViewState }): Child {
 export function BandwidthForm(props: { csrf: string; view: ViewState; bytesPerSecond: number }): Child {
 	const limited = props.bytesPerSecond > 0
 	return (
-		<section class="bandwidth" aria-labelledby="bandwidth-title">
-			<h2 id="bandwidth-title" class="bandwidth-title">Speed limit</h2>
-			<p class="muted">{limited ? `Limited to ${formatBytes(props.bytesPerSecond)}/s across all downloads.` : 'No limit.'}</p>
-			<form method="post" action="/actions/bandwidth" class="preset-form">
-				<HiddenFields csrf={props.csrf} view={props.view} />
-				{PRESETS.map((preset) => (
-					<Button key={preset.bytes} type="submit" size="sm" variant={preset.bytes === props.bytesPerSecond ? 'default' : 'outline'} name="preset" value={String(preset.bytes)}>
-						{preset.label}
-					</Button>
-				))}
-			</form>
-			<form method="post" action="/actions/bandwidth" class="custom-form">
-				<HiddenFields csrf={props.csrf} view={props.view} />
-				<Label class="sr-only" for="bandwidth-amount">Custom speed</Label>
-				<Input id="bandwidth-amount" name="amount" type="number" min="0" step="any" placeholder="Custom" />
-				<Label class="sr-only" for="bandwidth-unit">Unit</Label>
-				<div class="gb-select-wrap">
-					<select id="bandwidth-unit" name="unit" class="gb-select">
-						<option value="kib">KiB/s</option>
-						<option value="mib" selected>MiB/s</option>
-					</select>
-					<ChevronDown class="gb-select-icon" size={16} />
-				</div>
-				<Button type="submit" variant="secondary" size="sm">Set</Button>
-			</form>
-		</section>
+		<details class="bandwidth" open>
+			<summary class="bandwidth-title">
+				<Gauge size={16} />
+				<span>Speed limit</span>
+				<span class="bandwidth-state">{limited ? `${formatBytes(props.bytesPerSecond)}/s` : 'No limit'}</span>
+			</summary>
+			<div class="bandwidth-body">
+				<p class="muted">{limited ? `Limited to ${formatBytes(props.bytesPerSecond)}/s across all downloads.` : 'No limit.'}</p>
+				<form method="post" action="/actions/bandwidth" class="preset-form">
+					<HiddenFields csrf={props.csrf} view={props.view} />
+					{PRESETS.map((preset) => (
+						<Button key={preset.bytes} type="submit" size="sm" variant={preset.bytes === props.bytesPerSecond ? 'default' : 'outline'} name="preset" value={String(preset.bytes)}>
+							{preset.label}
+						</Button>
+					))}
+				</form>
+				<form method="post" action="/actions/bandwidth" class="custom-form">
+					<HiddenFields csrf={props.csrf} view={props.view} />
+					<Label class="sr-only" for="bandwidth-amount">Custom speed</Label>
+					<Input id="bandwidth-amount" name="amount" type="number" min="0" step="any" placeholder="Custom" />
+					<Label class="sr-only" for="bandwidth-unit">Unit</Label>
+					<div class="gb-select-wrap">
+						<select id="bandwidth-unit" name="unit" class="gb-select">
+							<option value="kib">KiB/s</option>
+							<option value="mib" selected>MiB/s</option>
+						</select>
+						<ChevronDown class="gb-select-icon" size={16} />
+					</div>
+					<Button type="submit" variant="secondary" size="sm">Set</Button>
+				</form>
+			</div>
+		</details>
 	)
 }
 

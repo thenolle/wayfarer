@@ -6,6 +6,13 @@ const PREVIEW_DELAY_MS = 500
 let previewTimer: number | undefined
 let previewSerial = 0
 
+const DESKTOP = '(min-width: 901px)'
+
+function syncResponsive(): void {
+	const desktop = matchMedia(DESKTOP).matches
+	for (const panel of document.querySelectorAll<HTMLDetailsElement>('details.bandwidth')) panel.open = desktop
+}
+
 function isTyping(target: EventTarget | null): boolean {
 	if (!(target instanceof HTMLElement)) return false
 	return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
@@ -25,6 +32,8 @@ function selectables(): HTMLInputElement[] {
 
 export function initEnhancements(): void {
 	document.documentElement.dataset['js'] = '1'
+	syncResponsive()
+	matchMedia(DESKTOP).addEventListener('change', syncResponsive)
 	document.addEventListener('change', (event) => {
 		const target = event.target
 		if (target instanceof HTMLInputElement && target.hasAttribute('data-select-all')) {
@@ -51,8 +60,8 @@ function isPreview(value: unknown): value is Preview {
 }
 
 function describePreview(preview: Preview): string {
-  const size = preview.totalBytes === null || preview.totalBytes === undefined ? 'unknown size' : formatBytes(preview.totalBytes)
-  return `${preview.filename} · ${size} · ${preview.acceptsRanges ? 'can resume' : 'cannot resume'}`
+	const size = preview.totalBytes === null || preview.totalBytes === undefined ? 'unknown size' : formatBytes(preview.totalBytes)
+	return `${preview.filename} · ${size} · ${preview.acceptsRanges ? 'can resume' : 'cannot resume'}`
 }
 
 async function runPreview(): Promise<void> {

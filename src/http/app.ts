@@ -1,5 +1,5 @@
 import { staticFiles } from '@gambrel/bun'
-import { createApp, json } from '@gambrel/core'
+import { createApp, json, redirect } from '@gambrel/core'
 import type { App } from '@gambrel/core'
 import { createDocumentHandler } from '@gambrel/ssr'
 import { components, hooks, routes } from '../../.gambrel/manifest.server'
@@ -36,6 +36,7 @@ export function createHttpApp(runtime: ApiRuntime, sessions: SessionResolver = c
 	app.use(sessions.middleware())
 	app.use(assetContentTypes())
 	app.use(staticFiles({ directory: runtime.config.clientDirectory, prefix: '/assets' }))
+	app.get('/favicon.ico', () => redirect('/assets/favicon.svg', 302))
 	app.get('/api/health', () => json({ data: { status: 'ok' } }))
 	registerDownloadRoutes(app, runtime)
 	registerSettingsRoutes(app, runtime)

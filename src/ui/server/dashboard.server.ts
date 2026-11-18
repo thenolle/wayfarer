@@ -89,9 +89,17 @@ export function buildDashboard(runtime: ApiRuntime, session: Session, search: st
 	const counts: Record<FilterName, number> = { all: records.length, active: 0, queued: 0, paused: 0, completed: 0, failed: 0 }
 	let speed = 0
 	let completedBytes = 0
+	let activeDone = 0
+	let activeTotal = 0
 	for (const record of records) {
 		counts[filterOf(record.status)] += 1
-		if (isRunning(record.status)) speed += record.speedBytesPerSecond
+		if (isRunning(record.status)) {
+			speed += record.speedBytesPerSecond
+			if (record.totalBytes !== null) {
+				activeDone += record.downloadedBytes
+				activeTotal += record.totalBytes
+			}
+		}
 		if (record.status === 'completed') completedBytes += record.downloadedBytes
 	}
 	const visible = records.filter((record) => matchesFilter(record.status, view.filter) && matchesQuery(record, view.q)).sort(COMPARATORS[view.sort])
@@ -99,11 +107,17 @@ export function buildDashboard(runtime: ApiRuntime, session: Session, search: st
 		csrf: session.csrfToken,
 		view,
 		counts,
-		stats: { speedBytesPerSecond: speed, active: counts.active, queued: counts.queued, completedBytes },
+		stats: {
+			speedBytesPerSecond: speed,
+			active: counts.active,
+			queued: counts.queued,
+			completedBytes,
+			activeProgress: activeTotal > 0 ? Math.min(1, activeDone / activeTotal) : null
+		},
 		downloads: visible.map((record) => toDownloadView(record, isFinalStatus(record.status) ? [] : runtime.segments.list(record.id))),
 		flash: takeFlash(session),
 		bandwidthBytesPerSecond: runtime.limiter.bytesPerSecond,
 		locations: runtime.config.locations.map((location) => ({ id: location.id, label: location.label })),
-    canReveal: isLoopbackHost(runtime.config.host),
+		canReveal: isLoopbackHost(runtime.config.host),
 	}
 }
