@@ -84,3 +84,32 @@ export function assertNoChallenge(response: Response, site: string): void {
 	discardBody(response)
 	throw new ResolverError(`${site} is protected by a Cloudflare challenge that only a browser can pass, and Wayfarer does not bypass those. Open the page in your browser, start the download there, copy the download link and add that link here instead.`)
 }
+
+/**
+ * Reads at most `maxBytes` of a response as text and stops after `timeoutMs`,
+ * returning what arrived. Use it for pages from hosts that are not trusted, so
+ * a huge or endless body cannot exhaust memory or hang a download.
+ */
+export async function readTextLimited(response: Response, maxBytes: number, timeoutMs: number): Promise<string> {
+	const body = response.body
+	if (body === null) return ''
+	const reader = body.getReader()
+	const decoder = new TextDecoder('utf-8', { fatal: false })
+	const timer = setTimeout(() => void reader.cancel().catch(() => undefined), timeoutMs)
+	let received = 0
+	let text = ''
+	try {
+		for (;;) {
+			const { done, value } = await reader.read()
+			if (done) break
+			const chunk = value.byteLength > maxBytes - received ? value.subarray(0, maxBytes - received) : value
+			text += decoder.decode(chunk, { stream: true })
+			received += chunk.byteLength
+			if (received >= maxBytes) break
+		}
+		return text + decoder.decode()
+	} finally {
+		clearTimeout(timer)
+		void reader.cancel().catch(() => undefined)
+	}
+}

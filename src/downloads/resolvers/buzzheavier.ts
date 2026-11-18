@@ -1,11 +1,12 @@
 import { CookieJar } from '../http/cookies'
 import { failAt, ResolverError } from '../http/errors'
-import { assertNoChallenge, assertOk, BROWSER_HEADERS, BROWSER_USER_AGENT, discardBody } from '../http/headers'
+import { assertNoChallenge, assertOk, BROWSER_HEADERS, BROWSER_USER_AGENT, discardBody, readTextLimited } from '../http/headers'
 import type { ResolvedSource, ResolverContext, UrlResolver } from './types'
 
 const HOSTS = new Set(['buzzheavier.com', 'bzzhr.to', 'bzzhr.co'])
 const LINK_PATTERN = /(?:hx-get|hx-post|href|data-href|data-url)\s*=\s*["']([^"']*\/download[^"']*)["']/gi
-const MAX_PAGE_CHARACTERS = 2_000_000
+const MAX_PAGE_BYTES = 2_000_000
+const PAGE_READ_TIMEOUT_MS = 15_000
 const FILE_NAME_PATTERN = /<p\b[^>]*\bclass\s*=\s*["'][^"']*\bfile-name\b[^"']*["'][^>]*>([^<]{1,255})<\/p>/i
 
 /**
@@ -58,7 +59,7 @@ export class BuzzheavierResolver implements UrlResolver {
 		const jar = new CookieJar()
 		const page = await context.fetch(url, { headers: BROWSER_HEADERS, jar, signal: context.signal })
 		try { assertOk(page.response) } catch (error) { failAt('Landing page', error) }
-		const html = (await page.response.text()).slice(0, MAX_PAGE_CHARACTERS)
+		const html = await readTextLimited(page.response, MAX_PAGE_BYTES, PAGE_READ_TIMEOUT_MS)
 		const endpoint = findDownloadEndpoint(html, page.url)
 		const step = await context.fetch(endpoint, {
 			headers: {

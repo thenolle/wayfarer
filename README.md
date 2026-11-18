@@ -9,8 +9,8 @@ transfers.
 
 ## Status
 
-Wayfarer is under active development and is not ready for production use.
-Interfaces, configuration and behaviour may change before the first release.
+Wayfarer is in pre-release. It is usable, but interfaces, configuration and
+behaviour may still change before a stable release.
 
 Available today:
 
@@ -22,20 +22,35 @@ Available today:
   SHA-256 verification and no-overwrite finalisation.
 - A priority scheduler with download and segment concurrency limits, pause,
   resume, cancel and remove, and a global bandwidth limiter.
-- URL resolvers for direct links and Buzzheavier, with a registry for adding
-  more.
+- URL resolvers for direct links, Buzzheavier and MediaFire, with a registry
+
+Third-party components and their licences are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+  for adding more.
 - Network safety: private and reserved addresses are refused by default, and
   every redirect is checked.
 - Crash recovery and graceful shutdown that keep progress consistent with the
   files on disk.
 - A JSON REST API with bearer-token authentication. See
   [docs/api/rest.md](docs/api/rest.md).
-- A server-rendered dashboard built with Gambrel components and icons. It works
-  without JavaScript and offers search, sorting, bulk actions, batch adding,
-  speed presets, a detail panel, dark mode, keyboard shortcuts and live updates
-  over WebSockets. See [docs/architecture/dashboard.md](docs/architecture/dashboard.md).
+- A server-rendered dashboard built with Gambrel components and icons. It
+  works without JavaScript and offers link checks that show the file name
+  before you add it, named save locations, search, sorting, bulk actions,
+  batch adding, speed presets, a detail panel, dark mode, keyboard shortcuts,
+  live updates over WebSockets and, on a local install, "Show in folder". See
+  [docs/architecture/dashboard.md](docs/architecture/dashboard.md).
+- Deployment configurations for Docker, systemd, Windows Task Scheduler and
+  macOS launchd. Only the Docker setup is built and health-checked in CI.
 
-Not yet available: Docker, systemd, Windows and macOS service configurations.
+### Known limitations
+
+- Hosts that put a CAPTCHA or Cloudflare challenge in front of a download,
+  such as the free tier of DataNodes and some Buzzheavier pages, cannot be
+  downloaded from automatically. Wayfarer never solves or bypasses those. Start
+  the download in your browser and add the final link instead.
+- Hostname checks happen before each request, but the HTTP client resolves
+  names again when it connects, so DNS rebinding is not fully prevented. See
+  [SECURITY.md](SECURITY.md).
 
 ## Requirements
 
@@ -51,7 +66,7 @@ bun install
 bun run check
 ```
 
-`bun run check` runs the strict TypeScript check and the test suite.
+`bun run check` regenerates the route manifests, runs the strict TypeScript check and the tests, and builds the project.
 
 ### Running the dashboard
 

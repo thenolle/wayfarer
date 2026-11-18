@@ -29,3 +29,20 @@ for the latest development version.
 
 Supported release versions will be listed here once stable releases are
 available.
+
+## Known limitations
+
+- **DNS rebinding.** Destination checks resolve a host name before each
+  request and redirect hop, but the HTTP client resolves it again when it
+  connects. A hostile DNS server could answer differently the second time.
+  Do not point Wayfarer at hosts you do not trust on a network with sensitive
+  internal services, and keep `WAYFARER_ALLOW_PRIVATE_NETWORKS` empty unless
+  you need it.
+- **Sign-in throttling is shared.** After repeated wrong tokens, sign-in is
+  paused for everyone for a short time. Wayfarer is designed for one user or
+  a small trusted group, so this favours safety over availability.
+- **Inline style attributes.** The page policy allows `style` attributes
+  (`style-src-attr 'unsafe-inline'`) because progress bars are positioned with
+  them. Scripts and style sheets remain limited to the application's own files.
+- **Show in folder** runs the system file manager and is available only when
+  Wayfarer listens on a loopback address.

@@ -49,7 +49,9 @@ export function securityHeaders(): Middleware {
 			'x-frame-options': 'DENY',
 			'cross-origin-resource-policy': 'same-origin',
 			'cache-control': 'no-store',
-			'content-security-policy': context.url.pathname.startsWith(API_PREFIX) ? API_CSP : PAGE_CSP
+			'content-security-policy': context.url.pathname.startsWith(API_PREFIX) ? API_CSP : PAGE_CSP,
+			'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+			'cross-origin-opener-policy': 'same-origin',
 		}
 		return withHeaders(response, (headers) => {
 			for (const [name, value] of Object.entries(defaults)) {

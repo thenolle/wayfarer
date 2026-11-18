@@ -1,36 +1,36 @@
 {
-  "name": "wayfarer",
-  "version": "0.1.0",
-  "private": true,
-  "description": "A persistent, cross-platform background download manager.",
-  "license": "PolyForm-Strict-1.0.0",
-  "type": "module",
-  "engines": {
-    "bun": ">=1.4.4"
-  },
-  "scripts": {
-    "generate": "bun scripts/generate.ts",
-    "dev": "bun scripts/dev.ts",
-    "build": "bun scripts/build.ts",
-    "start": "bun dist/server/index.js",
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "check": "bun run generate && bun run typecheck && bun run test && bun run build"
-  },
-  "devDependencies": {
-    "@types/bun": "^1.4.4",
-    "typescript": "^7.0.2"
-  },
-  "dependencies": {
-    "@gambrel/browser": "^0.2.3",
-    "@gambrel/bun": "^0.2.3",
-    "@gambrel/compiler": "^0.2.3",
-    "@gambrel/components": "^0.2.3",
-    "@gambrel/core": "^0.2.3",
-    "@gambrel/icons": "^0.2.3",
-    "@gambrel/reactivity": "^0.2.3",
-    "@gambrel/router": "^0.2.3",
-    "@gambrel/ssr": "^0.2.3",
-    "@gambrel/view": "^0.2.3"
-  }
+	"name": "wayfarer",
+	"version": "0.1.0",
+	"private": true,
+	"description": "A persistent, cross-platform background download manager.",
+	"license": "PolyForm-Strict-1.0.0",
+	"type": "module",
+	"engines": {
+		"bun": ">=1.4.4"
+	},
+	"scripts": {
+		"generate": "bun scripts/generate.ts",
+		"dev": "bun scripts/dev.ts",
+		"build": "bun scripts/build.ts",
+		"start": "bun dist/server/index.js",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test",
+		"licenses": "bun scripts/licenses.ts",
+		"check": "bun run generate && bun run typecheck && bun run test && bun run build"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.4.4",
+		"typescript": "^7.0.2"
+	},
+	"dependencies": {
+		"@gambrel/browser": "^0.2.3",
+		"@gambrel/bun": "^0.2.3",
+		"@gambrel/compiler": "^0.2.3",
+		"@gambrel/components": "^0.2.3",
+		"@gambrel/core": "^0.2.3",
+		"@gambrel/icons": "^0.2.3",
+		"@gambrel/router": "^0.2.3",
+		"@gambrel/ssr": "^0.2.3",
+		"@gambrel/view": "^0.2.3"
+	}
 }
