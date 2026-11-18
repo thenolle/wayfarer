@@ -1,6 +1,6 @@
 import { CookieJar } from '../http/cookies'
 import { failAt, ResolverError } from '../http/errors'
-import { assertOk, BROWSER_HEADERS, BROWSER_USER_AGENT, discardBody } from '../http/headers'
+import { assertNoChallenge, assertOk, BROWSER_HEADERS, BROWSER_USER_AGENT, discardBody } from '../http/headers'
 import type { ResolvedSource, ResolverContext, UrlResolver } from './types'
 
 const PAGE_PATHS = /^\/(?:file|file_premium|download|view)\//i
@@ -58,6 +58,7 @@ export class MediafireResolver implements UrlResolver {
 	async resolve(url: URL, context: ResolverContext): Promise<ResolvedSource> {
 		const jar = new CookieJar()
 		const page = await context.fetch(url, { headers: BROWSER_HEADERS, jar, signal: context.signal })
+		assertNoChallenge(page.response, 'MediaFire')
 		try { assertOk(page.response) } catch (error) { failAt('MediaFire page', error) }
 		const type = page.response.headers.get('content-type') ?? ''
 		if (!type.toLowerCase().startsWith('text/html')) {
