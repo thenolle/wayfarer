@@ -1,11 +1,12 @@
 import { CookieJar } from '../http/cookies'
 import { failAt, ResolverError } from '../http/errors'
-import { assertNoChallenge, assertOk, BROWSER_HEADERS, BROWSER_USER_AGENT, discardBody } from '../http/headers'
+import { assertNoChallenge, assertOk, BROWSER_HEADERS, BROWSER_USER_AGENT, discardBody, readTextLimited } from '../http/headers'
 import type { ResolvedSource, ResolverContext, UrlResolver } from './types'
 
 const PAGE_PATHS = /^\/(?:file|file_premium|download|view)\//i
 const BUTTON_TAG = /<a\b[^>]*\bid\s*=\s*["']downloadButton["'][^>]*>/i
-const MAX_PAGE_CHARACTERS = 2_000_000
+const MAX_PAGE_BYTES = 2_000_000
+const PAGE_READ_TIMEOUT_MS = 15_000
 
 function attribute(tag: string, name: string): string | null {
 	const match = new RegExp(`(?<=\\s)${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i').exec(tag)
@@ -65,7 +66,7 @@ export class MediafireResolver implements UrlResolver {
 			discardBody(page.response)
 			return this.source(page.url, url, jar)
 		}
-		const html = (await page.response.text()).slice(0, MAX_PAGE_CHARACTERS)
+		const html = await readTextLimited(page.response, MAX_PAGE_BYTES, PAGE_READ_TIMEOUT_MS)
 		const target = findMediafireLink(html, page.url)
 		if (target === null) throw new ResolverError('MediaFire did not offer a download link. The file may be removed, password-protected or need a browser.')
 		return this.source(target, page.url, jar)
