@@ -1,4 +1,5 @@
 import { join, resolve } from 'node:path'
+import { findClientDir } from './client-dir'
 
 const WILDCARD_HOSTS = new Set(['0.0.0.0', '::', '[::]'])
 
@@ -117,7 +118,7 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 		allowedHosts,
 		dataDirectory: dataDirectory,
 		downloadDirectory: downloadDir,
-		clientDirectory: resolve(readString(env, 'WAYFARER_CLIENT_DIRECTORY') ?? 'dist.client'),
+		clientDirectory: resolve(readString(env, 'WAYFARER_CLIENT_DIRECTORY') ?? findClientDir(import.meta.dir, process.cwd())),
 		databasePath: join(dataDirectory, 'wayfarer.sqlite'),
 		maxSegments: readInteger(env, 'WAYFARER_MAX_SEGMENTS', 8, 1, 64),
 		maxConcurrentDownloads: readInteger(env, 'WAYFARER_MAX_CONCURRENT_DOWNLOADS', 3, 1, 64),

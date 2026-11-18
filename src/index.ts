@@ -1,5 +1,6 @@
 import { installShutdownHandlers } from './app/lifecycle'
 import { createRuntime } from './app/runtime'
+import { missingClientAssets } from './config/client-dir'
 import { ConfigError, loadConfig } from './config/config'
 import { createHttpApp } from './http/app'
 import { buildAllowedHosts } from './http/middleware/security'
@@ -12,6 +13,9 @@ import { collectLiveSnapshot } from './websocket/snapshot'
 
 async function main(): Promise<void> {
 	const config = loadConfig()
+	const missing = missingClientAssets(config.clientDirectory)
+	if (missing.length > 0) console.warn(`[wayfarer] browser assets (${missing.join(', ')}) were not found in ${config.clientDirectory}. Pages will load without styles or live updates. Run "bun run build", or set WAYFARER_CLIENT_DIRECTORY.`)
+	else console.log(`[wayfarer] serving browser assets from ${config.clientDirectory}`)
 	const runtime = await createRuntime(config)
 	const sessions = createSessionResolver(config)
 	const hub = new LiveHub(() => collectLiveSnapshot(runtime))
@@ -25,7 +29,11 @@ async function main(): Promise<void> {
 		}
 	})
 	const report = await runtime.start()
-	server = startServer(createHttpApp(runtime, sessions), { hostname: config.host, port: config.port }, { hub, authorize: (request) => authorizeSocket(request, { allowedHosts, authToken: config.authToken, sessions }) })
+	server = startServer(
+		createHttpApp(runtime, sessions),
+		{ hostname: config.host, port: config.port },
+		{ hub, authorize: (request) => authorizeSocket(request, { allowedHosts, authToken: config.authToken, sessions }) }
+	)
 	console.log(`[wayfarer] listening on ${server.url.href} (${report.resumed.length} resumed, ${report.toVerify.length} to verify, ${report.restarted.length} restarted)`)
 }
 
