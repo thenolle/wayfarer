@@ -1,5 +1,6 @@
 import { UnsupportedUrlError } from '../http/errors'
 import { BuzzheavierResolver } from './buzzheavier'
+import { MediafireResolver } from './mediafire'
 import { DirectResolver } from './direct'
 import type { ResolvedSource, ResolverContext, UrlResolver } from './types'
 
@@ -42,5 +43,5 @@ export class ResolverRegistry {
  * The resolvers Wayfarer ships with, in precedence order. Add new providers here.
  */
 export function createDefaultResolvers(): ResolverRegistry {
-	return new ResolverRegistry([new BuzzheavierResolver()])
+	return new ResolverRegistry([new BuzzheavierResolver(), new MediafireResolver()])
 }
