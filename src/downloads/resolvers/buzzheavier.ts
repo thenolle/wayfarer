@@ -1,5 +1,5 @@
 import { CookieJar } from '../http/cookies'
-import { ResolverError } from '../http/errors'
+import { failAt, ResolverError } from '../http/errors'
 import { assertOk, BROWSER_HEADERS, BROWSER_USER_AGENT, discardBody } from '../http/headers'
 import type { ResolvedSource, ResolverContext, UrlResolver } from './types'
 
@@ -57,7 +57,7 @@ export class BuzzheavierResolver implements UrlResolver {
 	async resolve(url: URL, context: ResolverContext): Promise<ResolvedSource> {
 		const jar = new CookieJar()
 		const page = await context.fetch(url, { headers: BROWSER_HEADERS, jar, signal: context.signal })
-		assertOk(page.response)
+		try { assertOk(page.response) } catch (error) { failAt('Landing page', error) }
 		const html = (await page.response.text()).slice(0, MAX_PAGE_CHARACTERS)
 		const endpoint = findDownloadEndpoint(html, page.url)
 		const step = await context.fetch(endpoint, {
@@ -72,7 +72,8 @@ export class BuzzheavierResolver implements UrlResolver {
 			followRedirects: false,
 			signal: context.signal
 		})
-		const target = this.locateFile(step.response, step.url)
+		let target: URL
+		try { target = this.locateFile(step.response, step.url) } catch (error) { failAt('Download request', error) }
 		const cookie = jar.header(target)
 		return {
 			resolver: this.name,
