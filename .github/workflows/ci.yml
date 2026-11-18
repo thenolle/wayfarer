@@ -29,3 +29,28 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Run quality checks
         run: bun run check
+
+  container:
+    name: Container image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Build the image
+        run: docker build --tag wayfarer:ci .
+      - name: Start the container and wait for it to be healthy
+        run: |
+          docker run --detach --name wayfarer-ci \
+            --env WAYFARER_AUTH_TOKEN=ci-token-0123456789abcdef \
+            --env WAYFARER_ALLOWED_HOSTS=localhost,127.0.0.1 \
+            wayfarer:ci
+          for attempt in $(seq 1 45); do
+            status="$(docker inspect --format '{{.State.Health.Status}}' wayfarer-ci)"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs wayfarer-ci
+          exit 1

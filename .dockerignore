@@ -1,0 +1,10 @@
+.git
+.github
+.gambrel
+node_modules
+dist
+data
+docs
+tests
+*.md
+.env

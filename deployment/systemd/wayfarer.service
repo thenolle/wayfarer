@@ -1,0 +1,32 @@
+[Unit]
+Description=Wayfarer background download manager
+Documentation=https://github.com/thenolle/wayfarer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wayfarer
+Group=wayfarer
+WorkingDirectory=/opt/wayfarer
+EnvironmentFile=/etc/wayfarer/wayfarer.env
+ExecStart=/usr/local/bin/bun /opt/wayfarer/dist/server/index.js
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=40
+StateDirectory=wayfarer
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
