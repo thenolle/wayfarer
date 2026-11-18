@@ -6,6 +6,17 @@ import type { ResolvedSource, ResolverContext, UrlResolver } from './types'
 const HOSTS = new Set(['buzzheavier.com', 'bzzhr.to', 'bzzhr.co'])
 const LINK_PATTERN = /(?:hx-get|hx-post|href|data-href|data-url)\s*=\s*["']([^"']*\/download[^"']*)["']/gi
 const MAX_PAGE_CHARACTERS = 2_000_000
+const FILE_NAME_PATTERN = /<p\b[^>]*\bclass\s*=\s*["'][^"']*\bfile-name\b[^"']*["'][^>]*>([^<]{1,255})<\/p>/i
+
+/**
+ * The file name shown on a landing page, or null when the page does not show one.
+ */
+export function findFileName(html: string): string | null {
+	const raw = FILE_NAME_PATTERN.exec(html)?.[1]
+	if (raw === undefined) return null
+	const text = raw.replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&quot;', '"').replaceAll('&#39;', "'").replaceAll('&amp;', '&').trim()
+	return text === '' ? null : text
+}
 
 /**
  * Finds the download endpoint in a landing page. It looks at `hx-get`,
@@ -72,7 +83,7 @@ export class BuzzheavierResolver implements UrlResolver {
 				Referer: page.url.href,
 				...(cookie === null ? {} : { Cookie: cookie })
 			},
-			filenameHint: null
+			filenameHint: findFileName(html)
 		}
 	}
 
