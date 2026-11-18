@@ -116,6 +116,7 @@ export type StatsView = {
 	readonly active: number
 	readonly queued: number
 	readonly completedBytes: number
+	readonly activeProgress: number | null
 }
 
 export type DashboardData = {
