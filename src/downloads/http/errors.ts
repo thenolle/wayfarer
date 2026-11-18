@@ -80,3 +80,17 @@ export class UnsupportedUrlError extends Error {
     this.name = 'UnsupportedUrlError'
   }
 }
+
+/**
+ * Rethrows `error` with `step` in front of an HTTP status message, so the
+ * dashboard says which request failed. The error keeps its class, status and
+ * retry delay, so retry decisions are unchanged. Other errors pass through.
+ */
+export function failAt(step: string, error: unknown): never {
+	if (error instanceof HttpStatusError) {
+		const annotated = new HttpStatusError(error.status, error.retryAfterMs)
+		annotated.message = `${step}: ${error.message}`
+		throw annotated
+	}
+	throw error
+}

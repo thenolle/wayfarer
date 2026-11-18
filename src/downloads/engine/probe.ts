@@ -1,4 +1,4 @@
-import { BlockedDestinationError } from '../http/errors'
+import { BlockedDestinationError, failAt } from '../http/errors'
 import { filenameFromUrl, parseContentDisposition } from '../http/content-disposition'
 import { withoutSensitiveHeaders } from '../http/guarded-fetch'
 import { assertOk, discardBody, parseContentLength, parseContentRange, parseUnsatisfiedRange } from '../http/headers'
@@ -77,7 +77,13 @@ export async function probeSource(source: ResolvedSource, context: ResolverConte
 	const ranged = await context.fetch(rangeTarget, { headers: { ...headersFor(rangeTarget), Range: 'bytes=0-0' }, signal: context.signal })
 	try {
 		const { response } = ranged
-		const interpreted = interpretRangeResponse(response)
+		let interpreted: { acceptsRanges: boolean; totalBytes: number | null }
+		try {
+			interpreted = interpretRangeResponse(response)
+		} catch (error) {
+			if (source.resolver === 'direct') throw error
+			failAt(`File server ${ranged.url.host}`, error)
+		}
 		const headLength = head === null || hasContentEncoding(head.headers) ? null : parseContentLength(head.headers.get('content-length'))
 		return {
 			finalUrl: ranged.url.href,
@@ -86,7 +92,7 @@ export async function probeSource(source: ResolvedSource, context: ResolverConte
 			acceptsRanges: interpreted.acceptsRanges,
 			etag: response.headers.get('etag') ?? head?.headers.get('etag') ?? null,
 			lastModified: response.headers.get('last-modified') ?? head?.headers.get('last-modified') ?? null,
-			filename: parseContentDisposition(response.headers.get('content-disposition') ?? head?.headers.get('content-disposition') ?? null) ?? filenameFromUrl(ranged.url) ?? source.filenameHint
+			filename: parseContentDisposition(response.headers.get('content-disposition') ?? head?.headers.get('content-disposition') ?? null) ?? source.filenameHint ?? filenameFromUrl(ranged.url)
 		}
 	} finally {
 		discardBody(ranged.response)
