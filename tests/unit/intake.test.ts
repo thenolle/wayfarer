@@ -46,7 +46,7 @@ describe('DownloadIntake', () => {
 	})
 
 	test('gives concurrent requests for the same name distinct destinations', async () => {
-		const records = await Promise.all([1, 2, 3, 4, 5].map(() => intake.add({ url: 'https://example.test/archive.zip' })))
+		const records = await Promise.all([1, 2, 3, 4, 5].map((n) => intake.add({ url: `https://example.test/${n}/archive.zip` })))
 		const names = records.map((record) => record.filename).sort()
 		expect(names).toEqual(['archive (1).zip', 'archive (2).zip', 'archive (3).zip', 'archive (4).zip', 'archive.zip'])
 	})
