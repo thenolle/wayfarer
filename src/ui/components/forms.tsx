@@ -1,5 +1,5 @@
 /** @jsxImportSource @gambrel/view */
-import { Button, Input, Label, Textarea } from '@gambrel/components'
+import { Button, Checkbox, Input, Label, Textarea } from '@gambrel/components'
 import { ChevronDown, Plus, Search, Gauge } from '@gambrel/icons'
 import type { IconComponent } from '@gambrel/icons'
 import type { Child } from '@gambrel/view'
@@ -62,6 +62,7 @@ export function AddForm(props: { csrf: string; view: ViewState; locations: reado
 						<Input id="add-priority" name="priority" type="number" min="-100" max="100" step="1" value="0" />
 						<Label for="add-sha256">SHA-256 checksum</Label>
 						<Input id="add-sha256" name="sha256" type="text" placeholder="Single link only" autocomplete="off" />
+						<label class="check-row" for="add-duplicate"><Checkbox id="add-duplicate" name="allow_duplicate" value="1" /> Add even if the link is already in the list</label>
 					</div>
 				</details>
 				<div class="add-buttons">

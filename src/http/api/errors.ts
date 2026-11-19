@@ -1,7 +1,7 @@
 import { json } from '@gambrel/core'
 import { DownloadNotFoundError, InvalidTransitionError } from '../../downloads/domain/errors'
 import { InvalidDownloadError } from '../../downloads/domain/validation'
-import { ShuttingDownError } from '../../downloads/intake'
+import { DuplicateDownloadError, ShuttingDownError } from '../../downloads/intake'
 import { LocationError } from '../../filesystem/locations'
 import { LocationInUseError } from '../../filesystem/location-store'
 
@@ -10,11 +10,7 @@ import { LocationInUseError } from '../../filesystem/location-store'
  * is safe to show to API clients.
  */
 export class ApiError extends Error {
-	constructor(
-		readonly status: number,
-		readonly code: string,
-		message: string
-	) {
+	constructor(readonly status: number, readonly code: string, message: string) {
 		super(message)
 		this.name = 'ApiError'
 	}
@@ -36,6 +32,7 @@ export function toApiError(error: unknown): ApiError | null {
 	if (error instanceof InvalidTransitionError) return new ApiError(409, 'invalid_state', `A download that is ${error.from} cannot become ${error.to}`)
 	if (error instanceof LocationInUseError) return new ApiError(409, 'location_in_use', error.message)
 	if (error instanceof LocationError) return new ApiError(400, 'invalid_request', error.message)
+	if (error instanceof DuplicateDownloadError) return new ApiError(409, 'duplicate', `${error.message} Send "allowDuplicate": true to add it again.`)
 	if (error instanceof InvalidDownloadError) return new ApiError(400, 'invalid_request', error.message)
 	if (error instanceof ShuttingDownError) return new ApiError(503, 'shutting_down', error.message)
 	return null
