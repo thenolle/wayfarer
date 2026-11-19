@@ -18,6 +18,7 @@ import { PathEscapeError } from '../../filesystem/errors'
 import { confineToLocations } from '../../filesystem/locations'
 import { revealInFileManager } from '../../filesystem/reveal'
 import { DuplicateDownloadError } from '../../downloads/intake'
+import { describeQueueResult, isQueueOperation, runQueueOperation } from '../../downloads/queue'
 
 const SPEED_UNITS: Readonly<Record<string, number>> = { kib: 1024, mib: 1024 * 1024 }
 const INVALID_TOKEN_MESSAGE = 'Invalid or missing security token. Go back, reload the page and try again.'
@@ -150,6 +151,12 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 			return notes.length === 0 ? `Added ${plural(added.length)}` : `Added ${plural(added.length)}, ${notes.join(', ')}`
 		})
 	)
+
+	app.post('/actions/queue', (context) => perform(context.request, async (form) => {
+		const operation = field(form, 'operation')
+		if (!isQueueOperation(operation)) throw new InvalidDownloadError('Choose an action')
+		return describeQueueResult(await runQueueOperation(runtime, operation))
+	}))
 
 	app.post('/actions/bulk', (context) =>
 		perform(context.request, async (form) => {
