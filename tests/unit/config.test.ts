@@ -39,4 +39,16 @@ describe('loadConfig', () => {
 	test('parses private network allow lists', () => {
 		expect(loadConfig({ WAYFARER_ALLOW_PRIVATE_NETWORKS: ' 10.0.0.0/8 , nas.local ,' }).allowedPrivateNetworks).toEqual(['10.0.0.0/8', 'nas.local'])
 	})
+
+	test('parses and validates the webhook settings', () => {
+		const secret = 'x'.repeat(16)
+		expect(loadConfig({}).webhook).toBeNull()
+		expect(loadConfig({ WAYFARER_WEBHOOK_URL: 'https://hooks.example.test/in', WAYFARER_WEBHOOK_SECRET: secret }).webhook).toEqual({ url: 'https://hooks.example.test/in', secret })
+		expect(loadConfig({ WAYFARER_WEBHOOK_URL: 'http://nas.local:8123/api/webhook/abc' }).webhook?.secret).toBeNull()
+		expect(() => loadConfig({ WAYFARER_WEBHOOK_URL: 'not a url' })).toThrow(ConfigError)
+		expect(() => loadConfig({ WAYFARER_WEBHOOK_URL: 'ftp://hooks.example.test/in' })).toThrow(ConfigError)
+		expect(() => loadConfig({ WAYFARER_WEBHOOK_URL: 'https://user:pass@hooks.example.test/in' })).toThrow(ConfigError)
+		expect(() => loadConfig({ WAYFARER_WEBHOOK_URL: 'https://hooks.example.test/in', WAYFARER_WEBHOOK_SECRET: 'short' })).toThrow(ConfigError)
+		expect(() => loadConfig({ WAYFARER_WEBHOOK_SECRET: secret })).toThrow(ConfigError)
+	})
 })

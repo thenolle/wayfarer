@@ -17,6 +17,8 @@ import { ensureDirectories } from '../filesystem/paths'
 import { NetworkPolicy } from '../security/network-policy'
 import { inspectLink } from '../downloads/inspect'
 import type { LinkPreview } from '../downloads/inspect'
+import type { DownloadRecord } from '../downloads/domain/records'
+import { WebhookNotifier } from '../downloads/webhook'
 
 /**
  * The running application: persistence, the download engine and its scheduler,
@@ -63,10 +65,12 @@ export async function createRuntime(config: AppConfig): Promise<Runtime> {
 	const settings = new SettingsRepository(database)
 	const locations = new LocationStore(config.locations, settings, (directory) => downloads.list().filter((download) => isInside(directory, download.destination)).length)
 	const limiter = new BandwidthLimiter(settings.getBandwidthLimit() ?? config.bandwidthLimitBytesPerSecond)
-	const fetch = createGuardedFetch({ policy: new NetworkPolicy(config.allowedPrivateNetworks), headerTimeoutMs: config.requestTimeoutMs })
+	const policy = new NetworkPolicy(config.allowedPrivateNetworks)
+	const fetch = createGuardedFetch({ policy, headerTimeoutMs: config.requestTimeoutMs })
+	const webhook = config.webhook === undefined || config.webhook === null ? null : new WebhookNotifier({ url: new URL(config.webhook.url), secret: config.webhook.secret }, { policy })
 	const resolvers = createDefaultResolvers()
 	const engine = new DownloadEngine({ downloads, segments, resolvers, fetch, throttle: (bytes, signal) => limiter.acquire(bytes, signal), segmentGate: new Semaphore(config.maxConcurrentSegments) }, engineOptionsFromConfig(config))
-	const scheduler = new DownloadScheduler({ downloads, segments, runner: engine }, { maxConcurrentDownloads: config.maxConcurrentDownloads, downloadDirectory: config.downloadDirectory, extraRoots: () => locations.current().map((location) => location.path) })
+	const scheduler = new DownloadScheduler({ downloads, segments, runner: engine, ...(webhook === null ? {} : { onFinished: (record: DownloadRecord): void => webhook.notify(record) }) }, { maxConcurrentDownloads: config.maxConcurrentDownloads, downloadDirectory: config.downloadDirectory, extraRoots: () => locations.current().map((location) => location.path) })
 	const intake = new DownloadIntake({ downloads, downloadDirectory: config.downloadDirectory, locations: () => locations.current(), isAccepting: () => scheduler.accepting, onAdded: () => scheduler.notify() })
 	let stopping: Promise<void> | null = null
 	return {
@@ -91,6 +95,7 @@ export async function createRuntime(config: AppConfig): Promise<Runtime> {
 		shutdown() {
 			stopping ??= (async () => {
 				await scheduler.shutdown()
+				await webhook?.drain()
 				closeDatabase(database)
 			})()
 			return stopping
