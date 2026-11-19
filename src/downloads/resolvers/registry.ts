@@ -4,6 +4,9 @@ import { MediafireResolver } from './mediafire'
 import { DropboxResolver } from './dropbox'
 import { HuggingFaceResolver } from './huggingface'
 import { PixeldrainResolver } from './pixeldrain'
+import { GitHubResolver } from './github'
+import { GoogleDriveResolver } from './googledrive'
+import { OneDriveResolver } from './onedrive'
 import { DirectResolver } from './direct'
 import { BrowserOnlyResolver, DATANODES } from './browser-only'
 import type { ResolvedSource, ResolverContext, UrlResolver } from './types'
@@ -53,6 +56,9 @@ export function createDefaultResolvers(): ResolverRegistry {
 		new DropboxResolver(),
 		new PixeldrainResolver(),
 		new HuggingFaceResolver(),
+		new GitHubResolver(),
+		new GoogleDriveResolver(),
+		new OneDriveResolver(),
 		new BrowserOnlyResolver(DATANODES)
 	])
 }
