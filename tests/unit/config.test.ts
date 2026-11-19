@@ -51,4 +51,12 @@ describe('loadConfig', () => {
 		expect(() => loadConfig({ WAYFARER_WEBHOOK_URL: 'https://hooks.example.test/in', WAYFARER_WEBHOOK_SECRET: 'short' })).toThrow(ConfigError)
 		expect(() => loadConfig({ WAYFARER_WEBHOOK_SECRET: secret })).toThrow(ConfigError)
 	})
+
+	test('parses the retention period', () => {
+		expect(loadConfig({}).retentionDays).toBe(0)
+		expect(loadConfig({ WAYFARER_RETENTION_DAYS: '30' }).retentionDays).toBe(30)
+		expect(() => loadConfig({ WAYFARER_RETENTION_DAYS: '-1' })).toThrow(ConfigError)
+		expect(() => loadConfig({ WAYFARER_RETENTION_DAYS: '1.5' })).toThrow(ConfigError)
+		expect(() => loadConfig({ WAYFARER_RETENTION_DAYS: '4000' })).toThrow(ConfigError)
+	})
 })

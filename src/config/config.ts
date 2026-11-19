@@ -53,6 +53,7 @@ export interface AppConfig {
 	readonly persistIntervalMs: number
 	readonly allowedPrivateNetworks: readonly string[]
 	readonly webhook?: WebhookConfig | null
+	readonly retentionDays?: number
 }
 
 const LOOPBACK_HOSTNAMES = new Set(['localhost', '::1', '[::1]'])
@@ -171,5 +172,6 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 		persistIntervalMs: readInteger(env, 'WAYFARER_PERSIST_INTERVAL_MS', 250, 50, 60_000),
 		allowedPrivateNetworks: readList(env, 'WAYFARER_ALLOW_PRIVATE_NETWORKS'),
 		webhook: readWebhook(env),
+		retentionDays: readInteger(env, 'WAYFARER_RETENTION_DAYS', 0, 0, 3_650),
 	}
 }

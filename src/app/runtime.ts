@@ -19,6 +19,7 @@ import { inspectLink } from '../downloads/inspect'
 import type { LinkPreview } from '../downloads/inspect'
 import type { DownloadRecord } from '../downloads/domain/records'
 import { WebhookNotifier } from '../downloads/webhook'
+import { RetentionSweeper } from '../downloads/retention'
 
 /**
  * The running application: persistence, the download engine and its scheduler,
@@ -71,6 +72,8 @@ export async function createRuntime(config: AppConfig): Promise<Runtime> {
 	const resolvers = createDefaultResolvers()
 	const engine = new DownloadEngine({ downloads, segments, resolvers, fetch, throttle: (bytes, signal) => limiter.acquire(bytes, signal), segmentGate: new Semaphore(config.maxConcurrentSegments) }, engineOptionsFromConfig(config))
 	const scheduler = new DownloadScheduler({ downloads, segments, runner: engine, ...(webhook === null ? {} : { onFinished: (record: DownloadRecord): void => webhook.notify(record) }) }, { maxConcurrentDownloads: config.maxConcurrentDownloads, downloadDirectory: config.downloadDirectory, extraRoots: () => locations.current().map((location) => location.path) })
+	const retentionDays = config.retentionDays ?? 0
+	const retention = retentionDays > 0 ? new RetentionSweeper({ downloads, scheduler }, { days: retentionDays }) : null
 	const intake = new DownloadIntake({ downloads, downloadDirectory: config.downloadDirectory, locations: () => locations.current(), isAccepting: () => scheduler.accepting, onAdded: () => scheduler.notify() })
 	let stopping: Promise<void> | null = null
 	return {
@@ -86,6 +89,8 @@ export async function createRuntime(config: AppConfig): Promise<Runtime> {
 		async start() {
 			const report = await recoverInterruptedDownloads(downloads, segments)
 			scheduler.start()
+			scheduler.start()
+			retention?.start()
 			return report
 		},
 		setBandwidthLimit(bytesPerSecond) {
@@ -94,6 +99,7 @@ export async function createRuntime(config: AppConfig): Promise<Runtime> {
 		},
 		shutdown() {
 			stopping ??= (async () => {
+				await retention?.stop()
 				await scheduler.shutdown()
 				await webhook?.drain()
 				closeDatabase(database)
