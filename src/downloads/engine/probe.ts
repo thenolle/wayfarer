@@ -1,4 +1,4 @@
-import { BlockedDestinationError, failAt } from '../http/errors'
+import { BlockedDestinationError, failAt, ResolverError } from '../http/errors'
 import { filenameFromUrl, parseContentDisposition } from '../http/content-disposition'
 import { withoutSensitiveHeaders } from '../http/guarded-fetch'
 import { assertOk, discardBody, parseContentLength, parseContentRange, parseUnsatisfiedRange } from '../http/headers'
@@ -53,6 +53,13 @@ function interpretRangeResponse(response: Response): { acceptsRanges: boolean; t
 	return { acceptsRanges: false, totalBytes: length }
 }
 
+function assertNotWebPage(response: Response, url: URL): void {
+	const type = response.headers.get('content-type')?.toLowerCase() ?? ''
+	const disposition = response.headers.get('content-disposition')?.toLowerCase() ?? ''
+	if (!type.startsWith('text/html') || disposition.startsWith('attachment')) return
+	throw new ResolverError(`${url.host} answered with a web page instead of the file. The link may need a browser, have expired, or have reached the host's download limit.`)
+}
+
 /**
  * Inspects a remote file before downloading it.
  *
@@ -84,6 +91,7 @@ export async function probeSource(source: ResolvedSource, context: ResolverConte
 			if (source.resolver === 'direct') throw error
 			failAt(`File server ${ranged.url.host}`, error)
 		}
+		if (source.resolver !== 'direct') assertNotWebPage(response, ranged.url)
 		const headLength = head === null || hasContentEncoding(head.headers) ? null : parseContentLength(head.headers.get('content-length'))
 		return {
 			finalUrl: ranged.url.href,
