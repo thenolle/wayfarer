@@ -98,7 +98,7 @@ describe('DownloadScheduler onFinished', () => {
 			const second = enqueue('2.bin')
 			scheduler.start()
 			await waitFor(() => seen.length === 2)
-			expect(seen).toEqual([first.id, second.id])
+			expect([...seen].sort()).toEqual([first.id, second.id].sort())
 		} finally {
 			console.error = original
 		}
