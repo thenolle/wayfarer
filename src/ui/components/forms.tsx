@@ -1,6 +1,6 @@
 /** @jsxImportSource @gambrel/view */
 import { Button, Checkbox, Input, Label, Textarea } from '@gambrel/components'
-import { ChevronDown, Plus, Search, Gauge } from '@gambrel/icons'
+import { ChevronDown, CirclePause, Gauge, Play, Plus, Search, Trash } from '@gambrel/icons'
 import type { IconComponent } from '@gambrel/icons'
 import type { Child } from '@gambrel/view'
 import { formatBytes } from '../format'
@@ -70,6 +70,25 @@ export function AddForm(props: { csrf: string; view: ViewState; locations: reado
 					<Button type="submit"><Plus size={16} /> Add</Button>
 				</div>
 			</div>
+		</form>
+	)
+}
+
+export function QueueForm(props: { csrf: string; view: ViewState }): Child {
+	return (
+		<form class="queue-form" method="post" action="/actions/queue">
+			<HiddenFields csrf={props.csrf} view={props.view} />
+			<details class="queue-menu">
+				<summary>Whole queue</summary>
+				<div class="queue-buttons">
+					<Button type="submit" name="operation" value="pause-all" variant="outline" size="sm"><CirclePause size={14} /> Pause all</Button>
+					<Button type="submit" name="operation" value="resume-all" variant="outline" size="sm"><Play size={14} /> Resume all</Button>
+					<Button type="submit" name="operation" value="retry-failed" variant="outline" size="sm"><Play size={14} /> Retry failed</Button>
+					<Button type="submit" name="operation" value="clear-finished" variant="outline" size="sm"><Trash size={14} /> Clear finished</Button>
+					<Button type="submit" name="operation" value="clear-failed" variant="outline" size="sm"><Trash size={14} /> Clear failed</Button>
+				</div>
+				<p class="muted">Clearing removes entries from the list only. Files stay on disk.</p>
+			</details>
 		</form>
 	)
 }
