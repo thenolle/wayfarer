@@ -29,6 +29,8 @@ export interface SchedulerDependencies {
 	readonly downloads: DownloadsRepository
 	readonly segments: SegmentsRepository
 	readonly runner: DownloadRunner
+	/** Called once a run has left the download `completed` or `failed`. */
+	readonly onFinished?: (record: DownloadRecord) => void
 }
 
 type Intent = 'pause' | 'cancel' | 'shutdown'
@@ -201,7 +203,19 @@ export class DownloadScheduler {
 			this.markFailed(id)
 		} finally {
 			this.running.delete(id)
+			this.announce(id)
 			this.pump()
+		}
+	}
+
+	private announce(id: string): void {
+		const notify = this.deps.onFinished
+		if (notify === undefined) return
+		try {
+			const record = this.deps.downloads.get(id)
+			if (record !== null && (record.status === 'completed' || record.status === 'failed')) notify(record)
+		} catch (error) {
+			console.error('[wayfarer] a download notification failed', error)
 		}
 	}
 

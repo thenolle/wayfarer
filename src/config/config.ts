@@ -29,6 +29,11 @@ export interface RetryPolicy {
 	readonly jitterRatio: number
 }
 
+export interface WebhookConfig {
+	readonly url: string
+	readonly secret: string | null
+}
+
 export interface AppConfig {
 	readonly host: string
 	readonly port: number
@@ -47,10 +52,12 @@ export interface AppConfig {
 	readonly requestTimeoutMs: number
 	readonly persistIntervalMs: number
 	readonly allowedPrivateNetworks: readonly string[]
+	readonly webhook?: WebhookConfig | null
 }
 
 const LOOPBACK_HOSTNAMES = new Set(['localhost', '::1', '[::1]'])
 const MIN_AUTH_TOKEN_LENGTH = 16
+const MIN_WEBHOOK_SECRET_LENGTH = 16
 
 /**
  * Returns true when `host` only accepts connections from the local machine.
@@ -92,6 +99,25 @@ function readList(env: Environment, name: string): readonly string[] {
 	const raw = readString(env, name)
 	if (raw === null) return []
 	return raw.split(',').map((entry) => entry.trim()).filter((entry) => entry !== '')
+}
+
+function readWebhook(env: Environment): WebhookConfig | null {
+	const raw = readString(env, 'WAYFARER_WEBHOOK_URL')
+	const secret = readString(env, 'WAYFARER_WEBHOOK_SECRET')
+	if (raw === null) {
+		if (secret !== null) throw new ConfigError('WAYFARER_WEBHOOK_SECRET needs WAYFARER_WEBHOOK_URL')
+		return null
+	}
+	let url: URL
+	try {
+		url = new URL(raw)
+	} catch {
+		throw new ConfigError('WAYFARER_WEBHOOK_URL must be a valid URL')
+	}
+	if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new ConfigError('WAYFARER_WEBHOOK_URL must be an http or https URL')
+	if (url.username !== '' || url.password !== '') throw new ConfigError('WAYFARER_WEBHOOK_URL must not contain a user name or password; use WAYFARER_WEBHOOK_SECRET to sign requests')
+	if (secret !== null && secret.length < MIN_WEBHOOK_SECRET_LENGTH) throw new ConfigError(`WAYFARER_WEBHOOK_SECRET must be at least ${MIN_WEBHOOK_SECRET_LENGTH} characters`)
+	return { url: url.href, secret }
 }
 
 /**
@@ -143,6 +169,7 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 		},
 		requestTimeoutMs: readInteger(env, 'WAYFARER_REQUEST_TIMEOUT_MS', 30_000, 1_000, 3_600_000),
 		persistIntervalMs: readInteger(env, 'WAYFARER_PERSIST_INTERVAL_MS', 250, 50, 60_000),
-		allowedPrivateNetworks: readList(env, 'WAYFARER_ALLOW_PRIVATE_NETWORKS')
+		allowedPrivateNetworks: readList(env, 'WAYFARER_ALLOW_PRIVATE_NETWORKS'),
+		webhook: readWebhook(env),
 	}
 }
