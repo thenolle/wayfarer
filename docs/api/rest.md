@@ -46,6 +46,16 @@ action or `duplicate` when adding a duplicate download, `413` body over 64 KiB,
 `415` not `application/json`, `416`
 unsatisfiable range, `421` host name not allowed, `503` shutting down.
 
+## Queue, statistics and transfer
+
+| Method | Path                    | Result                                                                                                                                                              |
+| ------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST` | `/api/queue/:operation` | `pause-all`, `resume-all`, `retry-failed`, `clear-finished` or `clear-failed`. Returns `{ "data": { "operation", "matched", "done" } }`.                            |
+| `GET`  | `/api/stats`            | Counts by status, speed, completed bytes, speed limit and uptime.                                                                                                   |
+| `GET`  | `/api/metrics`          | The same in Prometheus text format.                                                                                                                                 |
+| `GET`  | `/api/export`           | The list as `{ "data": { "version", "exportedAt", "downloads" } }`. Optional `?status=queued,paused`.                                                               |
+| `POST` | `/api/import`           | Accepts an export, a list of objects or a list of links, plus optional `"allowDuplicate": true`. Returns `{ "data": { "added", "skipped" } }`. At most 500 entries. |
+
 ## Security
 
 - Wayfarer binds to `127.0.0.1` by default. Binding to any other address

@@ -23,6 +23,7 @@ Pages send a Content-Security-Policy that limits scripts, styles, connections an
 - Downloads can reach public addresses only. Loopback, private, link-local and reserved ranges are refused, including IPv4-mapped IPv6 forms.
 - Every redirect hop is checked, and credentials are dropped when a redirect changes origin.
 - Pages read from untrusted hosts are limited in size and time.
+- Webhook deliveries use the same network policy and never follow redirects. Exports contain your links, so treat them as private.
 
 ## Files
 

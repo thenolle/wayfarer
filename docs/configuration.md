@@ -49,6 +49,14 @@ All settings are environment variables. Defaults are chosen to be safe. Wayfarer
 > [!WARNING]
 > By default downloads can only reach public addresses. Allow a private network only if you trust everything on it.
 
+## Notifications and cleanup
+
+| Variable                  | Default | Description                                                                                                                                           |
+| ------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WAYFARER_WEBHOOK_URL`    | unset   | `http` or `https` URL that receives a signed `POST` when a download completes or fails. No user name or password. See [Webhooks](guides/webhooks.md). |
+| `WAYFARER_WEBHOOK_SECRET` | unset   | At least 16 characters. Signs webhook requests. Needs `WAYFARER_WEBHOOK_URL`.                                                                         |
+| `WAYFARER_RETENTION_DAYS` | `0`     | 0–3650. Remove completed and cancelled entries older than this many days from the list. `0` keeps everything. Files are never deleted.                |
+
 ## Examples
 
 ```bash
