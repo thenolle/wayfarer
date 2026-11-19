@@ -48,7 +48,7 @@ describe('PixeldrainResolver', () => {
 
 	test('explains missing files and keeps the status of other failures', async () => {
 		const missing = fakeContext(() => new Response('{}', { status: 404 }))
-		await expect(resolver.resolve(new URL('https://pixeldrain.com/u/AbCd1234'), missing.context)).rejects.toThrow('could not find')
+		expect(resolver.resolve(new URL('https://pixeldrain.com/u/AbCd1234'), missing.context)).rejects.toThrow('could not find')
 		const limited = fakeContext(() => new Response('{}', { status: 429, headers: { 'retry-after': '30' } }))
 		const failure = await resolver.resolve(new URL('https://pixeldrain.com/u/AbCd1234'), limited.context).catch((error: unknown) => error)
 		expect(failure).toBeInstanceOf(HttpStatusError)
@@ -59,7 +59,7 @@ describe('PixeldrainResolver', () => {
 
 	test('refuses lists without contacting the server', async () => {
 		const { context, requested } = fakeContext(() => Response.json({}))
-		await expect(resolver.resolve(new URL('https://pixeldrain.com/l/AbCd1234'), context)).rejects.toThrow('lists')
+		expect(resolver.resolve(new URL('https://pixeldrain.com/l/AbCd1234'), context)).rejects.toThrow('lists')
 		expect(requested).toHaveLength(0)
 	})
 })

@@ -30,6 +30,6 @@ describe('DropboxResolver', () => {
 	test('explains that folders are not supported', async () => {
 		const folder = new URL('https://www.dropbox.com/scl/fo/abc123/def?rlkey=k')
 		expect(resolver.canResolve(folder)).toBe(true)
-		await expect(resolver.resolve(folder)).rejects.toThrow('folders')
+		expect(resolver.resolve(folder)).rejects.toThrow('folders')
 	})
 })
