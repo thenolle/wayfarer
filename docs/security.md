@@ -26,7 +26,7 @@ Pages send a Content-Security-Policy that limits scripts, styles, connections an
 
 ## Files
 
-- Clients never supply file paths. Paths come from the database and are confined to the configured save locations.
+- Clients never supply paths for individual files. Signed-in users can add save locations (folders), so only give dashboard access to people you trust to write anywhere Wayfarer can.
 - Served files are attachments with `nosniff` and `Content-Security-Policy: sandbox`.
 - Save locations are named by you; subfolders cannot contain `..`.
 

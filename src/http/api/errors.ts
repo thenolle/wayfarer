@@ -2,6 +2,8 @@ import { json } from '@gambrel/core'
 import { DownloadNotFoundError, InvalidTransitionError } from '../../downloads/domain/errors'
 import { InvalidDownloadError } from '../../downloads/domain/validation'
 import { ShuttingDownError } from '../../downloads/intake'
+import { LocationError } from '../../filesystem/locations'
+import { LocationInUseError } from '../../filesystem/location-store'
 
 /**
  * An error with an HTTP status and a stable machine-readable code. Its message
@@ -32,6 +34,8 @@ export function toApiError(error: unknown): ApiError | null {
 	if (error instanceof ApiError) return error
 	if (error instanceof DownloadNotFoundError) return new ApiError(404, 'not_found', 'Download not found')
 	if (error instanceof InvalidTransitionError) return new ApiError(409, 'invalid_state', `A download that is ${error.from} cannot become ${error.to}`)
+	if (error instanceof LocationInUseError) return new ApiError(409, 'location_in_use', error.message)
+	if (error instanceof LocationError) return new ApiError(400, 'invalid_request', error.message)
 	if (error instanceof InvalidDownloadError) return new ApiError(400, 'invalid_request', error.message)
 	if (error instanceof ShuttingDownError) return new ApiError(503, 'shutting_down', error.message)
 	return null

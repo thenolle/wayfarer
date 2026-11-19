@@ -41,7 +41,7 @@ Downloads are written to `<destination>.part`, preallocated to the expected size
 
 ## Destinations and save locations
 
-A download goes to the main download directory or to a location named in `WAYFARER_LOCATIONS`, optionally inside a subfolder. The browser sends a location id, never a path. Reading, serving and deleting files is confined to the configured locations.
+A download goes to the main download directory or to a location named in `WAYFARER_LOCATIONS` or added in the dashboard (stored in the settings table), optionally inside a subfolder. The browser sends a location id, never a path. Reading, serving and deleting files is confined to the configured locations.
 
 New destinations never replace an existing file. Names are compared case-insensitively on every platform, so behaviour is identical on case-sensitive and case-insensitive filesystems. A unique index on the destination column enforces this in the database.
 

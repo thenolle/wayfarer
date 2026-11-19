@@ -117,7 +117,7 @@ export function buildDashboard(runtime: ApiRuntime, session: Session, search: st
 		downloads: visible.map((record) => toDownloadView(record, isFinalStatus(record.status) ? [] : runtime.segments.list(record.id))),
 		flash: takeFlash(session),
 		bandwidthBytesPerSecond: runtime.limiter.bytesPerSecond,
-		locations: runtime.config.locations.map((location) => ({ id: location.id, label: location.label })),
+		locations: runtime.locations.list().map((location) => ({ id: location.id, label: location.label })),
 		canReveal: isLoopbackHost(runtime.config.host),
 	}
 }

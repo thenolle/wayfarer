@@ -35,8 +35,8 @@ export interface AddDownloadInput {
 
 export interface IntakeDependencies {
 	readonly downloads: DownloadsRepository
-	readonly downloadDir: string
-	readonly locations?: readonly DownloadLocation[]
+	readonly downloadDirectory: string
+	readonly locations?: readonly DownloadLocation[] | (() => readonly DownloadLocation[])
 	readonly isAccepting: () => boolean
 	readonly onAdded: () => void
 }
@@ -75,7 +75,8 @@ export class DownloadIntake {
 
 	private async directoryFor(input: AddDownloadInput): Promise<string> {
 		const requested = input.locationId?.trim() ?? ''
-		const locations = this.deps.locations ?? [{ id: DEFAULT_LOCATION_ID, label: 'Downloads', path: this.deps.downloadDir }]
+		const source = this.deps.locations
+		const locations = typeof source === 'function' ? source() : (source ?? [{ id: DEFAULT_LOCATION_ID, label: 'Downloads', path: this.deps.downloadDirectory }])
 		let directory: string
 		try {
 			directory = resolveDirectory(locations, requested === '' ? DEFAULT_LOCATION_ID : requested, input.subfolder ?? '')

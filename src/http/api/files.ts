@@ -61,7 +61,7 @@ export async function serveCompletedFile(runtime: ApiRuntime, id: string, reques
 	if (record.status !== 'completed') throw new ApiError(409, 'not_ready', 'The download has not finished')
 	let path: string
 	try {
-		path = confineToLocations(runtime.config.locations, record.destination)
+		path = confineToLocations(runtime.locations.current(), record.destination)
 	} catch (error) {
 		if (error instanceof PathEscapeError) throw new ApiError(404, 'file_unavailable', 'The file is not available')
 		throw error

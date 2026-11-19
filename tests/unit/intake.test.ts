@@ -16,7 +16,7 @@ beforeEach(async () => {
 	added = 0
 	intake = new DownloadIntake({
 		downloads: context.downloads,
-		downloadDir: join(context.directory, 'downloads'),
+		downloadDirectory: join(context.directory, 'downloads'),
 		isAccepting: () => accepting,
 		onAdded: () => {
 			added += 1

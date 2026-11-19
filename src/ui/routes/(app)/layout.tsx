@@ -11,13 +11,12 @@ export default function AppLayout(props: LayoutProps<RouteParams, LoaderData<typ
 		<div class="shell">
 			<header class="topbar">
 				<a class="brand" href="/">
-          <span class="brand-mark"><Download size={18} /></span>
-          <span class="brand-name">Wayfarer</span>
-        </a>
+					<span class="brand-mark"><Download size={18} /></span>
+					<span class="brand-name">Wayfarer</span>
+				</a>
 				<div class="topbar-actions">
-					<span class="live" title="Live updates">
-						<span class="live-dot" />
-					</span>
+					<a class="gb-button gb-button-ghost gb-button-sm" href="/locations">Locations</a>
+					<span class="live" title="Live updates"><span class="live-dot" /></span>
 					<Button variant="ghost" size="icon" data-theme-toggle data-js-only aria-label="Toggle theme">
 						<Sun class="theme-sun" size={18} />
 						<Moon class="theme-moon" size={18} />

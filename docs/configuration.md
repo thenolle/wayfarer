@@ -13,12 +13,12 @@ All settings are environment variables. Defaults are chosen to be safe. Wayfarer
 
 ## Storage
 
-| Variable                      | Default                      | Description                                                                                                                              |
-| ----------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `WAYFARER_DATA_DIRECTORY`     | `./data`                     | Database and state directory.                                                                                                            |
-| `WAYFARER_DOWNLOAD_DIRECTORY` | `<data directory>/downloads` | Main destination for files.                                                                                                              |
-| `WAYFARER_LOCATIONS`          | none                         | Extra save locations as `Name=/absolute/path`, comma separated. Example: `Games=D:\Games,Movies=E:\Movies`. Paths cannot contain commas. |
-| `WAYFARER_CLIENT_DIRECTORY`   | auto-detected                | Directory of the built browser files.                                                                                                    |
+| Variable                      | Default                      | Description                                                                                                                                                                                   |
+| ----------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WAYFARER_DATA_DIRECTORY`     | `./data`                     | Database and state directory.                                                                                                                                                                 |
+| `WAYFARER_DOWNLOAD_DIRECTORY` | `<data directory>/downloads` | Main destination for files.                                                                                                                                                                   |
+| `WAYFARER_LOCATIONS`          | none                         | Extra save locations as `Name=/absolute/path`, comma separated. Example: `Games=D:\Games,Movies=E:\Movies`. Paths cannot contain commas. These are fixed. More can be added in the dashboard. |
+| `WAYFARER_CLIENT_DIRECTORY`   | auto-detected                | Directory of the built browser files.                                                                                                                                                         |
 
 ## Performance
 
