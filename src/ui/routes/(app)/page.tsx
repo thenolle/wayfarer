@@ -5,7 +5,7 @@ import type { LoaderData, PageProps, ParamsOf } from '@gambrel/router'
 import type { Child } from '@gambrel/view'
 import { Flash } from '../../components/chrome'
 import { DownloadItem } from '../../components/download-item'
-import { AddForm, HiddenFields, QueueForm, SearchForm } from '../../components/forms'
+import { AddForm, HiddenFields, QueueForm, SearchForm, TransferForm } from '../../components/forms'
 import { AppSidebar } from '../../components/sidebar'
 import { StatsRow } from '../../components/stats'
 import type { loader } from './page.server'
@@ -21,6 +21,7 @@ export default function DashboardPage(props: PageProps<ParamsOf<'/'>, LoaderData
 				<AddForm csrf={data.csrf} view={data.view} locations={data.locations} />
 				<SearchForm view={data.view} />
 				<QueueForm csrf={data.csrf} view={data.view} />
+				<TransferForm csrf={data.csrf} view={data.view} />
 				<form id="bulk" method="post" action="/actions/bulk"><HiddenFields csrf={data.csrf} view={data.view} /></form>
 				<Toolbar class="bulk-bar" role="toolbar" aria-label="Actions for selected downloads">
 					<ToolbarGroup>

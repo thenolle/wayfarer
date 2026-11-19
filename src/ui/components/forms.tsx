@@ -93,6 +93,25 @@ export function QueueForm(props: { csrf: string; view: ViewState }): Child {
 	)
 }
 
+export function TransferForm(props: { csrf: string; view: ViewState }): Child {
+	return (
+		<details class="queue-menu">
+			<summary>Export and import</summary>
+			<p class="muted">Save your list as a JSON file, or add the links from an exported file. Exported files contain your links, so keep them private.</p>
+			<div class="queue-buttons">
+				<a class="gb-button gb-button-outline gb-button-sm" href="/actions/export" download>Export list</a>
+			</div>
+			<form class="import-form" method="post" action="/actions/import" enctype="multipart/form-data">
+				<HiddenFields csrf={props.csrf} view={props.view} />
+				<Label class="sr-only" for="import-file">File to import</Label>
+				<input id="import-file" class="gb-input" type="file" name="file" accept="application/json,.json" required />
+				<label class="check-row" for="import-duplicate"><Checkbox id="import-duplicate" name="allow_duplicate" value="1" /> Add even if a link is already in the list</label>
+				<Button type="submit" variant="outline" size="sm">Import</Button>
+			</form>
+		</details>
+	)
+}
+
 export function SearchForm(props: { view: ViewState }): Child {
 	return (
 		<form class="search-form" method="get" action="/">
