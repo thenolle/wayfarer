@@ -89,7 +89,6 @@ export async function createRuntime(config: AppConfig): Promise<Runtime> {
 		async start() {
 			const report = await recoverInterruptedDownloads(downloads, segments)
 			scheduler.start()
-			scheduler.start()
 			retention?.start()
 			return report
 		},
