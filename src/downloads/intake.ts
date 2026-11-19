@@ -22,6 +22,19 @@ export class ShuttingDownError extends Error {
 	}
 }
 
+/**
+ * Raised when a link is already in the list (or was downloaded and the file
+ * is still there). It is an InvalidDownloadError, so callers that already
+ * handle bad input keep working; the API reports it as 409.
+ */
+export class DuplicateDownloadError extends InvalidDownloadError {
+	constructor(readonly existing: DownloadRecord) {
+		const what = existing.status === 'completed' ? 'was already downloaded' : `is already in your downloads (${existing.status})`
+		super(`“${existing.filename}” ${what}.`)
+		this.name = 'DuplicateDownloadError'
+	}
+}
+
 export interface AddDownloadInput {
 	readonly url: string
 	readonly priority?: number
@@ -31,6 +44,8 @@ export interface AddDownloadInput {
 	readonly locationId?: string | null
 	/** A folder inside the chosen location, for example `Games/PC`. */
 	readonly subfolder?: string | null
+	/** Add the link even if it is already in the list or was already downloaded. */
+	readonly allowDuplicate?: boolean
 }
 
 export interface IntakeDependencies {
@@ -39,6 +54,21 @@ export interface IntakeDependencies {
 	readonly locations?: readonly DownloadLocation[] | (() => readonly DownloadLocation[])
 	readonly isAccepting: () => boolean
 	readonly onAdded: () => void
+}
+
+/** Links are the same when they differ only by `#fragment`, host case or a default port. */
+export function duplicateKey(url: URL): string {
+	const copy = new URL(url.href)
+	copy.hash = ''
+	return copy.href
+}
+
+function keyOf(text: string): string {
+	try {
+		return duplicateKey(new URL(text))
+	} catch {
+		return text
+	}
 }
 
 /**
@@ -103,6 +133,10 @@ export class DownloadIntake {
 			expectedSha256 = normalizeSha256(rawChecksum)
 			if (expectedSha256 === null) throw new InvalidDownloadError('The checksum must be a 64-character hexadecimal SHA-256 digest')
 		}
+		if (input.allowDuplicate !== true) {
+			const duplicate = await this.findDuplicate(url)
+			if (duplicate !== null) throw new DuplicateDownloadError(duplicate)
+		}
 		const directory = await this.directoryFor(input)
 		const name = sanitizeFilename(input.filename ?? filenameFromUrl(url) ?? 'download')
 		const reserved = this.deps.downloads.list().map((download) => download.destination)
@@ -110,5 +144,15 @@ export class DownloadIntake {
 		const record = this.deps.downloads.create({ url: url.href, filename: basename(destination), destination, priority, expectedSha256 })
 		this.deps.onAdded()
 		return record
+	}
+
+	private async findDuplicate(url: URL): Promise<DownloadRecord | null> {
+		const key = duplicateKey(url)
+		for (const record of this.deps.downloads.list()) {
+			if (record.status === 'failed' || record.status === 'cancelled' || keyOf(record.url) !== key) continue
+			if (record.status === 'completed' && !(await Bun.file(record.destination).exists())) continue
+			return record
+		}
+		return null
 	}
 }

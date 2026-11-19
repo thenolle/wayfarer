@@ -11,6 +11,7 @@ Paste up to 50 links, one per line, into **Add downloads**.
 - **File name.** Filled in from the check. Edit it to rename the file. This works for a single link only.
 - **Save to.** The main download folder, or a location you named in `WAYFARER_LOCATIONS`. Add a **Subfolder** such as `Games/PC` (at most four levels; `..` is refused).
 - **More options.** Priority from -100 to 100, and a SHA-256 checksum for a single link.
+- **Duplicates.** A link that is already queued, running, paused or downloaded (with the file still on disk) is skipped, and the message says so. Tick **Add even if the link is already in the list** under More options to add it anyway. Failed and cancelled downloads never count. Links are compared ignoring the part after `#`, but query strings count.
 
 ## Manage save locations
 

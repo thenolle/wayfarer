@@ -17,6 +17,7 @@ import { BlockedDestinationError, HttpStatusError, ResolverError, UnsupportedUrl
 import { PathEscapeError } from '../../filesystem/errors'
 import { confineToLocations } from '../../filesystem/locations'
 import { revealInFileManager } from '../../filesystem/reveal'
+import { DuplicateDownloadError } from '../../downloads/intake'
 
 const SPEED_UNITS: Readonly<Record<string, number>> = { kib: 1024, mib: 1024 * 1024 }
 const INVALID_TOKEN_MESSAGE = 'Invalid or missing security token. Go back, reload the page and try again.'
@@ -115,14 +116,17 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 			const filename = field(form, 'filename')
 			if (filename !== '' && urls.length > 1) throw new InvalidDownloadError('A file name can only be set when adding a single link')
 			const priority = priorityText === '' ? undefined : wholeNumber(form, 'priority', 'Priority')
+			const allowDuplicate = field(form, 'allow_duplicate') === '1'
 			const added: string[] = []
 			let failed = 0
+			let duplicates = 0
 			let firstError: unknown = null
 			for (const url of urls) {
 				const input: AddDownloadInput = {
 					url,
 					locationId: field(form, 'location'),
 					subfolder: field(form, 'subfolder'),
+					...(allowDuplicate ? { allowDuplicate: true } : {}),
 					...(priority === undefined ? {} : { priority }),
 					...(checksum === '' ? {} : { expectedSha256: checksum }),
 					...(filename === '' ? {} : { filename })
@@ -131,12 +135,19 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 					added.push((await intake.add(input)).filename)
 				} catch (error) {
 					failed += 1
+					if (error instanceof DuplicateDownloadError) duplicates += 1
 					firstError ??= error
 				}
 			}
-			if (added.length === 0) throw firstError
+			if (added.length === 0) {
+				if (duplicates === failed && firstError instanceof DuplicateDownloadError) throw new InvalidDownloadError(duplicates > 1 ? `${duplicates} of these links are already in your downloads. Tick “Add even if the link is already in the list” under More options to add them again.` : `${firstError.message} Tick “Add even if the link is already in the list” under More options to add it again.`)
+				throw firstError
+			}
 			if (added.length === 1 && failed === 0) return `Added “${added[0] ?? 'download'}”`
-			return failed === 0 ? `Added ${plural(added.length)}` : `Added ${plural(added.length)}, ${failed} skipped`
+			const notes: string[] = []
+			if (duplicates > 0) notes.push(`${duplicates} already in your downloads`)
+			if (failed - duplicates > 0) notes.push(`${failed - duplicates} skipped`)
+			return notes.length === 0 ? `Added ${plural(added.length)}` : `Added ${plural(added.length)}, ${notes.join(', ')}`
 		})
 	)
 

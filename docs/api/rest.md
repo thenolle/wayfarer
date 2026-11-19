@@ -35,13 +35,15 @@ curl -X PATCH http://127.0.0.1:8787/api/settings/bandwidth \
 
 Request fields for `POST /api/downloads`: `url` (required), `priority` (integer
 -100 to 100), `sha256` (64 hex characters), `filename` (a suggested name; it is
-sanitised).
+sanitised), and `allowDuplicate` (optional boolean; set to `true` to allow a
+download that would otherwise be rejected as a duplicate).
 
 ## Status codes
 
 `400` invalid input, `401` missing or wrong token, `403` cross-origin request,
 `404` unknown download or file, `409` the download's state does not allow the
-action, `413` body over 64 KiB, `415` not `application/json`, `416`
+action or `duplicate` when adding a duplicate download, `413` body over 64 KiB,
+`415` not `application/json`, `416`
 unsatisfiable range, `421` host name not allowed, `503` shutting down.
 
 ## Security

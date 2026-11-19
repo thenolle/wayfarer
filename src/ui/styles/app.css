@@ -1047,3 +1047,11 @@ html[data-js] .select-all[data-js-only] {
     grid-template-columns: 1fr;
   }
 }
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  grid-column: 1 / -1;
+  font-size: 0.9rem;
+}

@@ -42,7 +42,9 @@ export function registerDownloadRoutes(app: App, runtime: ApiRuntime): void {
 		const priority = optionalInteger(body, 'priority')
 		const sha256 = optionalString(body, 'sha256')
 		const filename = optionalString(body, 'filename')
-		const input: AddDownloadInput = { url: requireString(body, 'url'), ...(priority === undefined ? {} : { priority }), ...(sha256 === undefined ? {} : { expectedSha256: sha256 }), ...(filename === undefined ? {} : { filename }) }
+		const allowDuplicate = body['allowDuplicate']
+		if (allowDuplicate !== undefined && typeof allowDuplicate !== 'boolean') throw new ApiError(400, 'invalid_request', '"allowDuplicate" must be true or false')
+		const input: AddDownloadInput = { url: requireString(body, 'url'), ...(priority === undefined ? {} : { priority }), ...(sha256 === undefined ? {} : { expectedSha256: sha256 }), ...(filename === undefined ? {} : { filename }), ...(allowDuplicate === true ? { allowDuplicate: true } : {}) }
 		const record = await intake.add(input)
 		return json({ data: toPublicDownload(record) }, { status: 201, headers: { location: `/api/downloads/${record.id}` } })
 	})
