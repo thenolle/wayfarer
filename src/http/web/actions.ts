@@ -7,7 +7,7 @@ import { formatSpeed } from '../../ui/format'
 import { DEFAULT_SORT, isFilterName, isSortName, MAX_QUERY_LENGTH } from '../../ui/view-model'
 import type { ApiRuntime } from '../api/context'
 import { toApiError } from '../api/errors'
-import { serveCompletedFile } from '../api/files'
+import { contentDisposition, serveCompletedFile } from '../api/files'
 import { tokensMatch } from '../middleware/security'
 import { LoginThrottle } from './session'
 import type { Session } from './session'
@@ -19,6 +19,7 @@ import { confineToLocations } from '../../filesystem/locations'
 import { revealInFileManager } from '../../filesystem/reveal'
 import { DuplicateDownloadError } from '../../downloads/intake'
 import { describeQueueResult, isQueueOperation, runQueueOperation } from '../../downloads/queue'
+import { describeImportResult, exportDownloads, importDownloads, MAX_IMPORT_BYTES, parseImport } from '../../downloads/transfer'
 
 const SPEED_UNITS: Readonly<Record<string, number>> = { kib: 1024, mib: 1024 * 1024 }
 const INVALID_TOKEN_MESSAGE = 'Invalid or missing security token. Go back, reload the page and try again.'
@@ -157,6 +158,31 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 		if (!isQueueOperation(operation)) throw new InvalidDownloadError('Choose an action')
 		return describeQueueResult(await runQueueOperation(runtime, operation))
 	}))
+
+	app.get('/actions/export', (context) => {
+		const { session } = sessions.resolve(context.request)
+		if (!session.authenticated) return redirect('/login', 303)
+		return new Response(JSON.stringify(exportDownloads(runtime.downloads.list(), Date.now()), null, 2), {
+			headers: { 'content-type': 'application/json; charset=utf-8', 'content-disposition': contentDisposition('wayfarer-downloads.json'), 'cache-control': 'no-store' }
+		})
+	})
+
+	app.post('/actions/import', (context) =>
+		perform(context.request, async (form) => {
+			const file = form.get('file')
+			if (!(file instanceof File) || file.size === 0) throw new InvalidDownloadError('Choose a file to import')
+			if (file.size > MAX_IMPORT_BYTES) throw new InvalidDownloadError('That file is too large to import')
+			let data: unknown
+			try {
+				data = JSON.parse(await file.text())
+			} catch {
+				throw new InvalidDownloadError('That file is not valid JSON')
+			}
+			const result = await importDownloads(intake, parseImport(data), { allowDuplicate: field(form, 'allow_duplicate') === '1' })
+			if (result.added === 0) throw new InvalidDownloadError(`Nothing was imported. ${result.skipped[0]?.message ?? ''}`.trim())
+			return describeImportResult(result)
+		})
+	)
 
 	app.post('/actions/bulk', (context) =>
 		perform(context.request, async (form) => {

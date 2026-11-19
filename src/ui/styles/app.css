@@ -1072,3 +1072,10 @@ html[data-js] .select-all[data-js-only] {
   gap: 0.5rem;
   margin: 0.5rem 0;
 }
+
+.import-form {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 28rem;
+  margin: 0.5rem 0;
+}

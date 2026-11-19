@@ -16,6 +16,7 @@ import { assetContentTypes } from './middleware/assets'
 import { registerLocationRoutes } from './api/locations'
 import { registerQueueRoutes } from './api/queue'
 import { registerStatsRoutes } from './api/stats'
+import { registerTransferRoutes } from './api/transfer'
 
 /**
  * Builds the HTTP application.
@@ -46,6 +47,7 @@ export function createHttpApp(runtime: ApiRuntime, sessions: SessionResolver = c
 	registerLocationRoutes(app, runtime)
 	registerQueueRoutes(app, runtime)
 	registerStatsRoutes(app, runtime)
+	registerTransferRoutes(app, runtime)
 	registerWebRoutes(app, runtime, sessions)
 	app.notFound((context) => context.url.pathname.startsWith('/api/') ? errorResponse(404, 'not_found', 'Not found') : documents.handle(context.request, { ...context, runtime, session: () => sessions.resolve(context.request).session }))
 	app.onError(handleError)
