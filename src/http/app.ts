@@ -13,6 +13,7 @@ import { registerWebRoutes } from './web/actions'
 import { createSessionResolver } from './web/session-context'
 import type { SessionResolver } from './web/session-context'
 import { assetContentTypes } from './middleware/assets'
+import { registerLocationRoutes } from './api/locations'
 
 /**
  * Builds the HTTP application.
@@ -40,6 +41,7 @@ export function createHttpApp(runtime: ApiRuntime, sessions: SessionResolver = c
 	app.get('/api/health', () => json({ data: { status: 'ok' } }))
 	registerDownloadRoutes(app, runtime)
 	registerSettingsRoutes(app, runtime)
+	registerLocationRoutes(app, runtime)
 	registerWebRoutes(app, runtime, sessions)
 	app.notFound((context) => context.url.pathname.startsWith('/api/') ? errorResponse(404, 'not_found', 'Not found') : documents.handle(context.request, { ...context, runtime, session: () => sessions.resolve(context.request).session }))
 	app.onError(handleError)

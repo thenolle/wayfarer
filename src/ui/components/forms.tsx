@@ -47,6 +47,7 @@ export function AddForm(props: { csrf: string; view: ViewState; locations: reado
 						</select>
 						<ChevronDown class="gb-select-icon" size={16} />
 					</div>
+					<a class="muted" href="/locations">Manage locations</a>
 				</div>
 				<div class="add-field">
 					<Label for="add-subfolder">Subfolder</Label>

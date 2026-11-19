@@ -63,6 +63,17 @@ unsatisfiable range, `421` host name not allowed, `503` shutting down.
   `Host` header, and list the public host name in `WAYFARER_ALLOWED_HOSTS`.
   Without TLS, bearer tokens travel in clear text.
 
+## Locations
+
+| Method   | Path                 | Body                                         | Result                                                              |
+| -------- | -------------------- | -------------------------------------------- | ------------------------------------------------------------------- |
+| `GET`    | `/api/locations`     |                                              | All locations with `id`, `label`, `path`, `managed` and `downloads` |
+| `POST`   | `/api/locations`     | `{ "label": "Games", "path": "/srv/games" }` | `201` with the new location                                         |
+| `PATCH`  | `/api/locations/:id` | `label` and/or `path`                        | The updated location                                                |
+| `DELETE` | `/api/locations/:id` |                                              | `204`                                                               |
+
+Only locations added through the dashboard or API can be changed. A location that holds downloads cannot be moved or removed (`409 location_in_use`).
+
 ## Limitations
 
 - `HEAD` requests are not routed and return `405`; use `GET`.

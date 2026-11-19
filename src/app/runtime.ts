@@ -12,6 +12,7 @@ import { createDefaultResolvers } from '../downloads/resolvers/registry'
 import { BandwidthLimiter } from '../downloads/scheduler/bandwidth-limiter'
 import { DownloadScheduler } from '../downloads/scheduler/scheduler'
 import { Semaphore } from '../downloads/scheduler/semaphore'
+import { isInside, LocationStore } from '../filesystem/location-store'
 import { ensureDirectories } from '../filesystem/paths'
 import { NetworkPolicy } from '../security/network-policy'
 import { inspectLink } from '../downloads/inspect'
@@ -26,6 +27,7 @@ export interface Runtime {
 	readonly downloads: DownloadsRepository
 	readonly segments: SegmentsRepository
 	readonly settings: SettingsRepository
+	readonly locations: LocationStore
 	readonly limiter: BandwidthLimiter
 	readonly scheduler: DownloadScheduler
 	readonly intake: DownloadIntake
@@ -59,18 +61,20 @@ export async function createRuntime(config: AppConfig): Promise<Runtime> {
 	const downloads = new DownloadsRepository(database)
 	const segments = new SegmentsRepository(database)
 	const settings = new SettingsRepository(database)
+	const locations = new LocationStore(config.locations, settings, (directory) => downloads.list().filter((download) => isInside(directory, download.destination)).length)
 	const limiter = new BandwidthLimiter(settings.getBandwidthLimit() ?? config.bandwidthLimitBytesPerSecond)
 	const fetch = createGuardedFetch({ policy: new NetworkPolicy(config.allowedPrivateNetworks), headerTimeoutMs: config.requestTimeoutMs })
 	const resolvers = createDefaultResolvers()
 	const engine = new DownloadEngine({ downloads, segments, resolvers, fetch, throttle: (bytes, signal) => limiter.acquire(bytes, signal), segmentGate: new Semaphore(config.maxConcurrentSegments) }, engineOptionsFromConfig(config))
-	const scheduler = new DownloadScheduler({ downloads, segments, runner: engine }, { maxConcurrentDownloads: config.maxConcurrentDownloads, downloadDirectory: config.downloadDirectory, extraRoots: config.locations.map((location) => location.path) })
-	const intake = new DownloadIntake({ downloads, downloadDir: config.downloadDirectory, locations: config.locations, isAccepting: () => scheduler.accepting, onAdded: () => scheduler.notify() })
+	const scheduler = new DownloadScheduler({ downloads, segments, runner: engine }, { maxConcurrentDownloads: config.maxConcurrentDownloads, downloadDirectory: config.downloadDirectory, extraRoots: () => locations.current().map((location) => location.path) })
+	const intake = new DownloadIntake({ downloads, downloadDirectory: config.downloadDirectory, locations: () => locations.current(), isAccepting: () => scheduler.accepting, onAdded: () => scheduler.notify() })
 	let stopping: Promise<void> | null = null
 	return {
 		config,
 		downloads,
 		segments,
 		settings,
+		locations,
 		limiter,
 		scheduler,
 		intake,

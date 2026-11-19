@@ -1,3 +1,4 @@
+- **Save to.** The main download folder, or any location from **Locations** (top right). Add a **Subfolder** such as `Games/PC` (at most four levels; `..` is refused).
 # Using the dashboard
 
 The dashboard works without JavaScript. With JavaScript it adds live progress, link checks, shortcuts and a few conveniences.
@@ -10,6 +11,14 @@ Paste up to 50 links, one per line, into **Add downloads**.
 - **File name.** Filled in from the check. Edit it to rename the file. This works for a single link only.
 - **Save to.** The main download folder, or a location you named in `WAYFARER_LOCATIONS`. Add a **Subfolder** such as `Games/PC` (at most four levels; `..` is refused).
 - **More options.** Priority from -100 to 100, and a SHA-256 checksum for a single link.
+
+## Manage save locations
+
+Open **Locations** to add, rename, re-point or remove the folders downloads can go to. Folders are created if they do not exist and must be writable by Wayfarer.
+
+- Locations from `WAYFARER_LOCATIONS` and the main folder are fixed and marked as such.
+- A location that still holds downloads is locked: you can rename it, but not move or remove it until its downloads are removed.
+- Removing a location never deletes files on disk.
 
 ## Find and sort
 

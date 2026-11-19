@@ -22,7 +22,7 @@ export interface SchedulerOptions {
 	/** Only files inside this directory are ever deleted. */
 	readonly downloadDirectory: string
 	/** More directories whose files may be deleted, besides `downloadDir`. */
-	readonly extraRoots?: readonly string[]
+	readonly extraRoots?: readonly string[] | (() => readonly string[])
 }
 
 export interface SchedulerDependencies {
@@ -242,7 +242,9 @@ export class DownloadScheduler {
 	}
 
 	private async deleteCompletedFile(destination: string): Promise<void> {
-		for (const root of [this.options.downloadDirectory, ...(this.options.extraRoots ?? [])]) {
+		const extra = this.options.extraRoots
+		const roots = [this.options.downloadDirectory, ...(typeof extra === 'function' ? extra() : (extra ?? []))]
+		for (const root of roots) {
 			let path: string
 			try {
 				path = resolveWithin(root, destination)

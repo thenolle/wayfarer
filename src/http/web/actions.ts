@@ -93,13 +93,13 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 		['remove', { run: (id) => scheduler.remove(id), past: 'Removed' }]
 	])
 
-	async function perform(request: Request, work: (form: FormData) => Promise<string> | string): Promise<Response> {
+	async function perform(request: Request, work: (form: FormData) => Promise<string> | string, target?: string): Promise<Response> {
 		const { session } = sessions.resolve(request)
 		if (!session.authenticated) return redirect('/login', 303)
 		const form = await readForm(request)
 		if (form === null || !csrfValid(session, form)) return text(INVALID_TOKEN_MESSAGE, { status: 403 })
 		try { session.flash = { kind: 'success', message: await work(form) } } catch (error) { session.flash = { kind: 'error', message: describeFailure(error) } }
-		return redirect(returnPath(form), 303)
+		return redirect(target ?? returnPath(form), 303)
 	}
 
 	let previews = 0
@@ -220,6 +220,22 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 		return bytesPerSecond === 0 ? 'Bandwidth limit removed' : `Bandwidth limited to ${formatSpeed(bytesPerSecond)}`
 	}))
 
+	app.post('/actions/locations/add', (context) => perform(context.request, async (form) => {
+		const location = await runtime.locations.add(field(form, 'label'), field(form, 'path'))
+		return `Added “${location.label}”`
+	}, '/locations'))
+
+	app.post('/actions/locations/:id/update', (context) => perform(context.request, async (form) => {
+		const location = await runtime.locations.update(context.params.id, { label: field(form, 'label'), path: field(form, 'path') })
+		return `Saved “${location.label}”`
+	}, '/locations'))
+
+	app.post('/actions/locations/:id/remove', (context) => perform(context.request, () => {
+		const label = runtime.locations.list().find((location) => location.id === context.params.id)?.label ?? 'Location'
+		runtime.locations.remove(context.params.id)
+		return `Removed “${label}”. Files on disk were not touched.`
+	}, '/locations'))
+
 	app.post('/actions/login', async (context) => {
 		const { session } = sessions.resolve(context.request)
 		const form = await readForm(context.request)
@@ -277,7 +293,7 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 		if (record === null) throw new DownloadNotFoundError(context.params.id)
 		let path: string
 		try {
-			path = confineToLocations(runtime.config.locations, record.destination)
+			path = confineToLocations(runtime.locations.current(), record.destination)
 		} catch (error) {
 			if (error instanceof PathEscapeError) throw new InvalidDownloadError('That file is outside the download folders')
 			throw error

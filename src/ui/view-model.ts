@@ -130,3 +130,12 @@ export type DashboardData = {
 	readonly locations: { readonly id: string; readonly label: string }[]
 	readonly canReveal: boolean
 }
+
+export type LocationView = {
+	readonly id: string
+	readonly label: string
+	readonly path: string
+	readonly managed: 'default' | 'config' | 'user'
+	readonly downloads: number
+}
+export type LocationsData = { readonly csrf: string; readonly flash: FlashView | null; readonly locations: LocationView[] }
