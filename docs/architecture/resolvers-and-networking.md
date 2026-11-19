@@ -4,12 +4,15 @@
 
 Every URL passes through a resolver before it is downloaded. A resolver turns the URL the user typed into a `ResolvedSource`: the real file URL, the request headers (referer, cookies, user agent) the host expects and an optional `filenameHint`.
 
-| Resolver              | Handles                                                                                  |
-| --------------------- | ---------------------------------------------------------------------------------------- |
-| `BuzzheavierResolver` | `buzzheavier.com`, `bzzhr.to`, `bzzhr.co`                                                |
-| `MediafireResolver`   | `mediafire.com` pages under `/file/`, `/file_premium/`, `/download/` and `/view/`        |
-| `BrowserOnlyResolver` | DataNodes file pages; it refuses with an explanation because the host requires a CAPTCHA |
-| `DirectResolver`      | any other `http` or `https` URL (fallback)                                               |
+| Resolver              | Handles                                                                                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BuzzheavierResolver` | `buzzheavier.com`, `bzzhr.to`, `bzzhr.co`                                                                                                            |
+| `MediafireResolver`   | `mediafire.com` pages under `/file/`, `/file_premium/`, `/download/` and `/view/`                                                                    |
+| `DropboxResolver`     | `dropbox.com/s/...` and `dropbox.com/scl/fi/...`; shared files only. Folders are refused with an explanation                                         |
+| `PixeldrainResolver`  | `pixeldrain.com/u/<id>` for single files only; lists are refused and the name comes from the file's info                                             |
+| `HuggingFaceResolver` | `huggingface.co/<owner>/<repo>/blob/<revision>/<path>`; public model, dataset and space files only. Gated or private files fail with HTTP 401 or 403 |
+| `BrowserOnlyResolver` | DataNodes file pages; it refuses with an explanation because the host requires a CAPTCHA                                                             |
+| `DirectResolver`      | any other `http` or `https` URL (fallback)                                                                                                           |
 
 Resolvers are tried in registration order and the first whose `canResolve` accepts the URL is used. `createDefaultResolvers()` in `src/downloads/resolvers/registry.ts` is the single place to register one. To add a provider, implement `UrlResolver` in its own file and add it to that list. Nothing in the download engine changes.
 
