@@ -3,6 +3,25 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.2] - 2026-11-19
+
+### Added
+- Whole-queue actions: pause all, resume all, retry failed, clear finished
+  and clear failed, in the dashboard and at `POST /api/queue/:operation`.
+- `GET /api/stats` and Prometheus-format `GET /api/metrics`.
+- Signed webhooks for completed and failed downloads (`WAYFARER_WEBHOOK_URL`,
+  `WAYFARER_WEBHOOK_SECRET`).
+- Automatic cleanup of old finished entries (`WAYFARER_RETENTION_DAYS`).
+- Export and import of the downloads list, in the dashboard and at `/api/export`
+  and `/api/import`.
+- Resolvers for GitHub file pages, public Google Drive files and personal OneDrive
+  links (simulated-response tests only).
+
+### Fixed
+- Links from resolver hosts that answer with a web page, such as a quota page or
+  an expired link, now fail with a clear message instead of being saved as a file.
+- The scheduler is started once.
+
 ## [0.1.1] - 2026-11-19
 
 ### Added
@@ -38,5 +57,6 @@ All notable changes to this project are documented here. The format follows
   for CAPTCHA-protected hosts.
 - Docker, systemd, Windows and macOS deployment configurations.
 
+[0.1.2]: https://github.com/thenolle/wayfarer/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/thenolle/wayfarer/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/thenolle/wayfarer/releases/tag/v0.1.0

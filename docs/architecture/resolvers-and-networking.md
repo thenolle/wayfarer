@@ -11,6 +11,9 @@ Every URL passes through a resolver before it is downloaded. A resolver turns th
 | `DropboxResolver`     | `dropbox.com/s/...` and `dropbox.com/scl/fi/...`; shared files only. Folders are refused with an explanation                                         |
 | `PixeldrainResolver`  | `pixeldrain.com/u/<id>` for single files only; lists are refused and the name comes from the file's info                                             |
 | `HuggingFaceResolver` | `huggingface.co/<owner>/<repo>/blob/<revision>/<path>`; public model, dataset and space files only. Gated or private files fail with HTTP 401 or 403 |
+| `GitHubResolver`      | File pages (`github.com/<owner>/<repo>/blob/…`); uses the "Raw" link. Release assets and archives are already direct links.                          |
+| `GoogleDriveResolver` | Public file links (`/file/d/…`, `/open?id=…`, `/uc?id=…`); folders are not supported. Quota or limit pages fail without a workaround.                |
+| `OneDriveResolver`    | Personal links (`1drv.ms`, `onedrive.live.com`); business and SharePoint links need a sign-in and are not supported.                                 |
 | `BrowserOnlyResolver` | DataNodes file pages; it refuses with an explanation because the host requires a CAPTCHA                                                             |
 | `DirectResolver`      | any other `http` or `https` URL (fallback)                                                                                                           |
 
@@ -38,6 +41,8 @@ The dashboard's link check calls the same resolver registry and the same probe a
 ## Probing
 
 Before downloading, Wayfarer sends `HEAD`, then `GET` with `Range: bytes=0-0`. Range support is accepted only when the server answers `206 Partial Content` with `Content-Range: bytes 0-0/<total>`. An `Accept-Ranges` header on its own is not trusted. Requests ask for `Accept-Encoding: identity` so that byte counts match the stored file.
+
+For links that went through a resolver, the probe refuses a response whose content type is `text/html` unless it is sent as an attachment. That catches quota pages and expired links, which would otherwise be saved as a file. Plain direct links are not affected.
 
 ## Network policy and SSRF
 
