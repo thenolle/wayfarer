@@ -142,8 +142,11 @@ if (-not (Test-Path $envFile)) {
 
 Write-Step 'Registering the Wayfarer task'
 $start = Join-Path $app 'deployment\windows\start-wayfarer.ps1'
-$arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$start`" -InstallDir `"$app`" -EnvFile `"$envFile`""
-$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $arguments -WorkingDirectory $app
+$launcher = Join-Path $InstallDir 'wayfarer-hidden.vbs'
+$command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""$start"" -InstallDir ""$app"" -EnvFile ""$envFile"""
+$vbs = 'WScript.Quit CreateObject("WScript.Shell").Run("' + $command.Replace('"', '""') + '", 0, True)'
+[IO.File]::WriteAllText($launcher, "$vbs`r`n")
+$action = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "//B //Nologo `"$launcher`"" -WorkingDirectory $app
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
 $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
