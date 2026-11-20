@@ -2,21 +2,22 @@
 
 Wayfarer is a single Bun process with a clear separation of responsibilities.
 
-| Area               | Location                                        | Responsibility                                                      |
-| ------------------ | ----------------------------------------------- | ------------------------------------------------------------------- |
-| Configuration      | `src/config`                                    | Parse and validate environment settings.                            |
-| Domain             | `src/downloads/domain`                          | Statuses, transitions, records and checksum state.                  |
-| Persistence        | `src/database`                                  | SQLite connection, migrations and repositories.                     |
-| Segments           | `src/downloads/segments`                        | Byte-range planning.                                                |
-| Engine             | `src/downloads/engine`                          | Probing, segmented transfer, verification and finalisation.         |
-| Resolvers and HTTP | `src/downloads/resolvers`, `src/downloads/http` | Turn links into files; guarded network access.                      |
-| Scheduler          | `src/downloads/scheduler`                       | Priorities, concurrency, bandwidth limit and lifecycle commands.    |
-| Recovery           | `src/downloads/recovery`                        | Reconcile interrupted downloads with files on disk.                 |
-| Filesystem         | `src/filesystem`                                | Filename safety, destinations, save locations, atomic finalisation. |
-| Security           | `src/security`                                  | Network policy and address rules.                                   |
-| Transport          | `src/http`, `src/websocket`, `src/server`       | REST API, form actions, sessions, live updates.                     |
-| Dashboard          | `src/ui`                                        | Gambrel-rendered pages, components and browser scripts.             |
-| Wiring             | `src/app`                                       | The runtime that connects everything, and graceful shutdown.        |
+| Area               | Location                                                   | Responsibility                                                          |
+| ------------------ | ---------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Configuration      | `src/config`                                               | Parse and validate environment settings.                                |
+| Domain             | `src/downloads/domain`                                     | Statuses, transitions, records and checksum state.                      |
+| Persistence        | `src/database`                                             | SQLite connection, migrations and repositories.                         |
+| Segments           | `src/downloads/segments`                                   | Byte-range planning.                                                    |
+| Engine             | `src/downloads/engine`                                     | Probing, segmented transfer, verification and finalisation.             |
+| Resolvers and HTTP | `src/downloads/resolvers`, `src/downloads/http`            | Turn links into files; guarded network access.                          |
+| Torrents           | `src/downloads/torrent`, `src/downloads/routing-runner.ts` | Magnet and `.torrent` intake, the aria2 process and the torrent runner. |
+| Scheduler          | `src/downloads/scheduler`                                  | Priorities, concurrency, bandwidth limit and lifecycle commands.        |
+| Recovery           | `src/downloads/recovery`                                   | Reconcile interrupted downloads with files on disk.                     |
+| Filesystem         | `src/filesystem`                                           | Filename safety, destinations, save locations, atomic finalisation.     |
+| Security           | `src/security`                                             | Network policy and address rules.                                       |
+| Transport          | `src/http`, `src/websocket`, `src/server`                  | REST API, form actions, sessions, live updates.                         |
+| Dashboard          | `src/ui`                                                   | Gambrel-rendered pages, components and browser scripts.                 |
+| Wiring             | `src/app`                                                  | The runtime that connects everything, and graceful shutdown.            |
 
 ## Rules
 
@@ -38,6 +39,12 @@ queued ─► probing ─► downloading ─► verifying ─► completed
 ## Part files and recovery
 
 Downloads are written to `<destination>.part`, preallocated to the expected size. Segment offsets in SQLite are durable offsets: the next byte that has not been confirmed on disk. After a crash, recovery compares those offsets with the part file. Consistent downloads resume from the recorded offsets. Inconsistent ones, such as a missing or wrongly sized part file, restart from zero. Recovery can be repeated safely.
+
+## Torrents
+
+Torrents are stored as magnet links on records whose `resolver` is `torrent`. The scheduler holds one runner, a routing runner that sends magnet records to the torrent runner and everything else to the HTTP engine. The torrent runner starts one aria2 process on a random loopback port, adds the torrent, and polls it. It saves progress through the normal repository, so the dashboard, API, webhooks and metrics see torrents like any other download.
+
+aria2 works in a hidden staging folder next to the destination. On completion the single top-level file or folder is renamed into place without overwriting, so it works across drives. Pause, cancel and shutdown abort the runner's signal, which removes the torrent from aria2 and keeps its control file for resume. Cancelling or removing an unfinished torrent deletes the staging folder through the scheduler's `discard` hook.
 
 ## Destinations and save locations
 

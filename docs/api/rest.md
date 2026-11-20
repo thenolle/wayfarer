@@ -18,6 +18,24 @@ include file system paths or internal details.
 | GET    | `/api/settings/bandwidth`   | Current global limit.                                                |
 | PATCH  | `/api/settings/bandwidth`   | Set the limit in bytes per second; `0` is unlimited.                 |
 
+### Add a torrent file
+
+`POST /api/downloads/torrent` queues a `.torrent` file. Send the raw file as the body, or as a `file` field in `multipart/form-data`. Optional query parameters: `priority`, `location`, `subfolder` and `allowDuplicate=true`. Answers `201` with the download, `400` for an invalid file, `409 duplicate` for a torrent already in the list and `413` for files over 8 MiB.
+
+Magnet links and `.torrent` links go to `POST /api/downloads` like any other link:
+
+```bash
+curl -X POST http://127.0.0.1:8787/api/downloads \\
+  -H 'content-type: application/json' \\
+  -d '{"url":"magnet:?xt=urn:btih:c12fe1c06bba254a9dc9f519b335aa7c1367a88a"}'
+
+curl -X POST 'http://127.0.0.1:8787/api/downloads/torrent?location=main' \\
+  -H 'content-type: application/x-bittorrent' \\
+  --data-binary @example.torrent
+```
+
+Add `-H "Authorization: Bearer $TOKEN"` to both calls if you set `WAYFARER_AUTH_TOKEN`.
+
 ## Examples
 
 ```bash

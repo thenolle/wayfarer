@@ -31,6 +31,8 @@ export interface SchedulerDependencies {
 	readonly runner: DownloadRunner
 	/** Called once a run has left the download `completed` or `failed`. */
 	readonly onFinished?: (record: DownloadRecord) => void
+	/** Removes data a runner keeps outside the part file. Called when a download is cancelled or removed before it completed. */
+	readonly discard?: (record: DownloadRecord) => Promise<void>
 }
 
 type Intent = 'pause' | 'cancel' | 'shutdown'
@@ -129,7 +131,7 @@ export class DownloadScheduler {
 		const record = this.deps.downloads.require(id)
 		if (record.status === 'cancelled') return record
 		assertTransition(record.status, 'cancelled')
-		await this.discardPartial(id, record.destination)
+		await this.discardPartial(record)
 		return this.deps.downloads.setStatus(id, 'cancelled', { ...IDLE, downloadedBytes: 0 })
 	}
 
@@ -146,8 +148,10 @@ export class DownloadScheduler {
 		if (entry !== undefined) await this.stopRunning(entry, 'cancel')
 		const record = this.deps.downloads.get(id)
 		if (record === null) return false
-		if (record.status !== 'completed') await rm(partPathFor(record.destination), { force: true })
-		else if (options.deleteFile === true) await this.deleteCompletedFile(record.destination)
+		if (record.status !== 'completed') {
+			await rm(partPathFor(record.destination), { force: true })
+			await this.deps.discard?.(record)
+		} else if (options.deleteFile === true) await this.deleteCompletedFile(record.destination)
 		this.deps.downloads.delete(id)
 		return true
 	}
@@ -226,7 +230,7 @@ export class DownloadScheduler {
 		if (entry.intent === 'pause') {
 			this.deps.downloads.setStatus(id, 'paused', IDLE)
 		} else if (entry.intent === 'cancel') {
-			await this.discardPartial(id, record.destination)
+			await this.discardPartial(record)
 			this.deps.downloads.setStatus(id, 'cancelled', { ...IDLE, downloadedBytes: 0 })
 		} else {
 			this.deps.downloads.setStatus(id, 'queued', IDLE)
@@ -250,9 +254,10 @@ export class DownloadScheduler {
 		await entry.done
 	}
 
-	private async discardPartial(id: string, destination: string): Promise<void> {
-		await rm(partPathFor(destination), { force: true })
-		this.deps.segments.deleteFor(id)
+	private async discardPartial(record: DownloadRecord): Promise<void> {
+		await rm(partPathFor(record.destination), { force: true })
+		this.deps.segments.deleteFor(record.id)
+		await this.deps.discard?.(record)
 	}
 
 	private async deleteCompletedFile(destination: string): Promise<void> {
@@ -266,7 +271,7 @@ export class DownloadScheduler {
 				if (error instanceof PathEscapeError) continue
 				throw error
 			}
-			await rm(path, { force: true })
+			await rm(path, { force: true, recursive: true })
 			return
 		}
 	}

@@ -15,6 +15,7 @@
         { "path": "guides/webhooks", "title": "Webhooks", "summary": "Get a signed notification when a download completes or fails, and verify it." },
         { "path": "guides/monitoring", "title": "Monitoring", "summary": "Read statistics as JSON or scrape Prometheus metrics." },
         { "path": "guides/resolvers", "title": "Supported hosts", "summary": "Which download hosts Wayfarer understands, and what to do with hosts that need a browser." },
+				{ "path": "guides/torrents", "title": "Torrents", "summary": "Download magnet links and .torrent files with aria2, and what to expect." },
         { "path": "guides/troubleshooting", "title": "Troubleshooting", "summary": "Fix blocked requests, HTTP 403 errors, missing styles, save-location errors and more." }
       ]
     },

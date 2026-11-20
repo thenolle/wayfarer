@@ -29,12 +29,16 @@ export function HiddenFields(props: { csrf: string; view: ViewState }): Child {
 
 export function AddForm(props: { csrf: string; view: ViewState; locations: readonly { id: string; label: string }[] }): Child {
 	return (
-		<form class="add-form" method="post" action="/actions/add">
+		<form class="add-form" method="post" action="/actions/add" enctype="multipart/form-data">
 			<HiddenFields csrf={props.csrf} view={props.view} />
 			<Label for="add-url">Add downloads</Label>
-			<Textarea id="add-url" name="url" rows={2} required autocomplete="off" spellcheck={false} placeholder="Paste one or more links, one per line" />
+			<Textarea id="add-url" name="url" rows={2} autocomplete="off" spellcheck={false} placeholder="Paste links, magnet links or .torrent links, one per line" />
 			<div id="add-preview" class="preview" role="status" aria-live="polite" hidden></div>
 			<div class="add-row">
+				<div class="add-field">
+					<Label for="add-torrent">Torrent files</Label>
+					<input id="add-torrent" class="gb-input" type="file" name="torrent" accept=".torrent,application/x-bittorrent" multiple />
+				</div>
 				<div class="add-field">
 					<Label for="add-filename">File name</Label>
 					<Input id="add-filename" name="filename" type="text" autocomplete="off" placeholder="Detected automatically" />
@@ -61,7 +65,7 @@ export function AddForm(props: { csrf: string; view: ViewState; locations: reado
 						<Label for="add-priority">Priority (-100 to 100)</Label>
 						<Input id="add-priority" name="priority" type="number" min="-100" max="100" step="1" value="0" />
 						<Label for="add-sha256">SHA-256 checksum</Label>
-						<Input id="add-sha256" name="sha256" type="text" placeholder="Single link only" autocomplete="off" />
+						<Input id="add-sha256" name="sha256" type="text" placeholder="Single link only, not for torrents" autocomplete="off" />
 						<label class="check-row" for="add-duplicate"><Checkbox id="add-duplicate" name="allow_duplicate" value="1" /> Add even if the link is already in the list</label>
 					</div>
 				</details>
