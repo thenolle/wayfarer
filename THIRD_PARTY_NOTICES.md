@@ -13,6 +13,10 @@ lists the other software it uses.
   other bundled libraries. Bun's own licence page lists them:
   <https://bun.com/docs/project/license>.
 
+## aria2
+
+Wayfarer starts the separately installed `aria2c` program to download torrents. It is not bundled with, or linked into, Wayfarer. The Docker image installs it from the Debian package archive. aria2 is licensed under the GPL-2.0-or-later. See <https://github.com/aria2/aria2>.
+
 ## Development only (not part of the Docker image)
 
 TypeScript and the `@types/*` and `bun-types` packages are used for type

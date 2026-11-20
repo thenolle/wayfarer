@@ -57,6 +57,16 @@ All settings are environment variables. Defaults are chosen to be safe. Wayfarer
 | `WAYFARER_WEBHOOK_SECRET` | unset   | At least 16 characters. Signs webhook requests. Needs `WAYFARER_WEBHOOK_URL`.                                                                         |
 | `WAYFARER_RETENTION_DAYS` | `0`     | 0–3650. Remove completed and cancelled entries older than this many days from the list. `0` keeps everything. Files are never deleted.                |
 
+## Torrents
+
+| Variable                               | Default       | Description                                                                        |
+| -------------------------------------- | ------------- | ---------------------------------------------------------------------------------- |
+| `WAYFARER_ARIA2_PATH`                  | `aria2c`      | The aria2 program used for torrents. See [Torrents](guides/torrents.md).           |
+| `WAYFARER_TORRENT_MAX_PEERS`           | `100`         | Peers per torrent (1–1000).                                                        |
+| `WAYFARER_TORRENT_TRACKERS`            | empty         | Extra trackers, comma separated, added to every torrent. `http`, `https` or `udp`. |
+| `WAYFARER_TORRENT_LISTEN_PORT`         | aria2 default | Port or range for incoming peers and DHT, for example `6881-6999`.                 |
+| `WAYFARER_TORRENT_METADATA_TIMEOUT_MS` | `120000`      | How long a magnet link may wait for its details before it fails (5000–3600000).    |
+
 ## Examples
 
 ```bash
