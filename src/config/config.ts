@@ -34,6 +34,22 @@ export interface WebhookConfig {
 	readonly secret: string | null
 }
 
+export interface TorrentConfig {
+	readonly aria2Path: string
+	readonly maxPeers: number
+	readonly trackers: readonly string[]
+	readonly listenPort: string | null
+	readonly metadataTimeoutMs: number
+}
+
+export const DEFAULT_TORRENT_CONFIG: TorrentConfig = {
+	aria2Path: 'aria2c',
+	maxPeers: 100,
+	trackers: [],
+	listenPort: null,
+	metadataTimeoutMs: 120_000
+}
+
 export interface AppConfig {
 	readonly host: string
 	readonly port: number
@@ -54,11 +70,13 @@ export interface AppConfig {
 	readonly allowedPrivateNetworks: readonly string[]
 	readonly webhook?: WebhookConfig | null
 	readonly retentionDays?: number
+	readonly torrent?: TorrentConfig
 }
 
 const LOOPBACK_HOSTNAMES = new Set(['localhost', '::1', '[::1]'])
 const MIN_AUTH_TOKEN_LENGTH = 16
 const MIN_WEBHOOK_SECRET_LENGTH = 16
+const TRACKER_PROTOCOLS = new Set(['http:', 'https:', 'udp:'])
 
 /**
  * Returns true when `host` only accepts connections from the local machine.
@@ -121,6 +139,28 @@ function readWebhook(env: Environment): WebhookConfig | null {
 	return { url: url.href, secret }
 }
 
+function readTorrent(env: Environment): TorrentConfig {
+	const listenPort = readString(env, 'WAYFARER_TORRENT_LISTEN_PORT')
+	if (listenPort !== null && !/^\d{1,5}([,-]\d{1,5})*$/.test(listenPort)) throw new ConfigError('WAYFARER_TORRENT_LISTEN_PORT must be a port, a range such as 6881-6999, or a comma-separated list')
+	const trackers = readList(env, 'WAYFARER_TORRENT_TRACKERS')
+	for (const tracker of trackers) {
+		let url: URL
+		try {
+			url = new URL(tracker)
+		} catch {
+			throw new ConfigError('WAYFARER_TORRENT_TRACKERS must be a comma-separated list of tracker URLs')
+		}
+		if (!TRACKER_PROTOCOLS.has(url.protocol)) throw new ConfigError('WAYFARER_TORRENT_TRACKERS entries must use http, https or udp')
+	}
+	return {
+		aria2Path: readString(env, 'WAYFARER_ARIA2_PATH') ?? DEFAULT_TORRENT_CONFIG.aria2Path,
+		maxPeers: readInteger(env, 'WAYFARER_TORRENT_MAX_PEERS', DEFAULT_TORRENT_CONFIG.maxPeers, 1, 1000),
+		trackers,
+		listenPort,
+		metadataTimeoutMs: readInteger(env, 'WAYFARER_TORRENT_METADATA_TIMEOUT_MS', DEFAULT_TORRENT_CONFIG.metadataTimeoutMs, 5_000, 3_600_000)
+	}
+}
+
 /**
  * Builds the application configuration from environment variables.
  *
@@ -173,5 +213,6 @@ export function loadConfig(env: Environment = process.env): AppConfig {
 		allowedPrivateNetworks: readList(env, 'WAYFARER_ALLOW_PRIVATE_NETWORKS'),
 		webhook: readWebhook(env),
 		retentionDays: readInteger(env, 'WAYFARER_RETENTION_DAYS', 0, 0, 3_650),
+		torrent: readTorrent(env),
 	}
 }

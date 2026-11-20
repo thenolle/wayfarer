@@ -20,6 +20,7 @@ import { revealInFileManager } from '../../filesystem/reveal'
 import { DuplicateDownloadError } from '../../downloads/intake'
 import { describeQueueResult, isQueueOperation, runQueueOperation } from '../../downloads/queue'
 import { describeImportResult, exportDownloads, importDownloads, MAX_IMPORT_BYTES, parseImport } from '../../downloads/transfer'
+import type { DownloadRecord } from '../../downloads/domain/records'
 
 const SPEED_UNITS: Readonly<Record<string, number>> = { kib: 1024, mib: 1024 * 1024 }
 const INVALID_TOKEN_MESSAGE = 'Invalid or missing security token. Go back, reload the page and try again.'
@@ -110,31 +111,36 @@ export function registerWebRoutes(app: App, runtime: ApiRuntime, sessions: Sessi
 	app.post('/actions/add', (context) =>
 		perform(context.request, async (form) => {
 			const urls = field(form, 'url').split(/\s+/).filter((entry) => entry !== '')
-			if (urls.length === 0) throw new InvalidDownloadError('Enter at least one URL')
-			if (urls.length > MAX_BATCH) throw new InvalidDownloadError(`Add at most ${MAX_BATCH} links at a time`)
+			const files = form.getAll('torrent').filter((entry): entry is File => entry instanceof File && entry.size > 0)
+			const count = urls.length + files.length
+			if (count === 0) throw new InvalidDownloadError('Enter at least one link or choose a .torrent file')
+			if (count > MAX_BATCH) throw new InvalidDownloadError(`Add at most ${MAX_BATCH} links at a time`)
 			const priorityText = field(form, 'priority')
 			const checksum = field(form, 'sha256')
-			if (checksum !== '' && urls.length > 1) throw new InvalidDownloadError('A checksum can only be used when adding a single link')
+			if (checksum !== '' && count > 1) throw new InvalidDownloadError('A checksum can only be used when adding a single link')
 			const filename = field(form, 'filename')
-			if (filename !== '' && urls.length > 1) throw new InvalidDownloadError('A file name can only be set when adding a single link')
+			if (filename !== '' && count > 1) throw new InvalidDownloadError('A file name can only be set when adding a single link')
 			const priority = priorityText === '' ? undefined : wholeNumber(form, 'priority', 'Priority')
 			const allowDuplicate = field(form, 'allow_duplicate') === '1'
+			const options: Omit<AddDownloadInput, 'url'> = {
+				locationId: field(form, 'location'),
+				subfolder: field(form, 'subfolder'),
+				...(allowDuplicate ? { allowDuplicate: true } : {}),
+				...(priority === undefined ? {} : { priority }),
+				...(checksum === '' ? {} : { expectedSha256: checksum }),
+				...(filename === '' ? {} : { filename })
+			}
+			const jobs: (() => Promise<DownloadRecord>)[] = [
+				...urls.map((url) => () => intake.add({ ...options, url })),
+				...files.map((file) => async () => intake.addTorrentFile(new Uint8Array(await file.arrayBuffer()), options))
+			]
 			const added: string[] = []
 			let failed = 0
 			let duplicates = 0
 			let firstError: unknown = null
-			for (const url of urls) {
-				const input: AddDownloadInput = {
-					url,
-					locationId: field(form, 'location'),
-					subfolder: field(form, 'subfolder'),
-					...(allowDuplicate ? { allowDuplicate: true } : {}),
-					...(priority === undefined ? {} : { priority }),
-					...(checksum === '' ? {} : { expectedSha256: checksum }),
-					...(filename === '' ? {} : { filename })
-				}
+			for (const job of jobs) {
 				try {
-					added.push((await intake.add(input)).filename)
+					added.push((await job()).filename)
 				} catch (error) {
 					failed += 1
 					if (error instanceof DuplicateDownloadError) duplicates += 1

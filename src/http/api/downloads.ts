@@ -8,6 +8,7 @@ import type { ApiRuntime } from './context'
 import { toPublicDownload } from './dto'
 import { ApiError } from './errors'
 import { serveCompletedFile } from './files'
+import { MAX_TORRENT_BYTES } from '../../downloads/torrent/metadata'
 
 function parseStatusFilter(value: string | null): readonly DownloadStatus[] | null {
 	if (value === null || value.trim() === '') return null
@@ -18,6 +19,17 @@ function parseStatusFilter(value: string | null): readonly DownloadStatus[] | nu
 		statuses.push(status)
 	}
 	return statuses
+}
+
+async function readTorrentBody(request: Request): Promise<Uint8Array> {
+	const declared = Number(request.headers.get('content-length') ?? '0')
+	if (declared > MAX_TORRENT_BYTES) throw new ApiError(413, 'too_large', 'That .torrent file is too large')
+	if ((request.headers.get('content-type') ?? '').toLowerCase().startsWith('multipart/form-data')) {
+		const file = (await request.formData()).get('file')
+		if (!(file instanceof File)) throw new ApiError(400, 'invalid_request', 'Send the .torrent as a "file" field')
+		return new Uint8Array(await file.arrayBuffer())
+	}
+	return new Uint8Array(await request.arrayBuffer())
 }
 
 /**
@@ -46,6 +58,19 @@ export function registerDownloadRoutes(app: App, runtime: ApiRuntime): void {
 		if (allowDuplicate !== undefined && typeof allowDuplicate !== 'boolean') throw new ApiError(400, 'invalid_request', '"allowDuplicate" must be true or false')
 		const input: AddDownloadInput = { url: requireString(body, 'url'), ...(priority === undefined ? {} : { priority }), ...(sha256 === undefined ? {} : { expectedSha256: sha256 }), ...(filename === undefined ? {} : { filename }), ...(allowDuplicate === true ? { allowDuplicate: true } : {}) }
 		const record = await intake.add(input)
+		return json({ data: toPublicDownload(record) }, { status: 201, headers: { location: `/api/downloads/${record.id}` } })
+	})
+
+	app.post('/api/downloads/torrent', async (context) => {
+		const bytes = await readTorrentBody(context.request)
+		const params = context.url.searchParams
+		const priorityText = params.get('priority')
+		const record = await intake.addTorrentFile(bytes, {
+			locationId: params.get('location') ?? '',
+			subfolder: params.get('subfolder') ?? '',
+			...(priorityText === null ? {} : { priority: Number(priorityText) }),
+			...(params.get('allowDuplicate') === 'true' ? { allowDuplicate: true } : {})
+		})
 		return json({ data: toPublicDownload(record) }, { status: 201, headers: { location: `/api/downloads/${record.id}` } })
 	})
 
