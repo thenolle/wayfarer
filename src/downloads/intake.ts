@@ -93,7 +93,7 @@ export function parseDownloadUrl(text: string): URL {
  * The final name may still change once the server reveals its own file name.
  */
 export class DownloadIntake {
-	constructor(private readonly deps: IntakeDependencies) { }
+	constructor(protected readonly deps: IntakeDependencies) { }
 
 	/**
 	 * @throws {InvalidDownloadError} when the input is invalid.
@@ -103,7 +103,7 @@ export class DownloadIntake {
 		return withDestinationLock(() => this.create(input))
 	}
 
-	private async directoryFor(input: AddDownloadInput): Promise<string> {
+	protected async directoryFor(input: AddDownloadInput): Promise<string> {
 		const requested = input.locationId?.trim() ?? ''
 		const source = this.deps.locations
 		const locations = typeof source === 'function' ? source() : (source ?? [{ id: DEFAULT_LOCATION_ID, label: 'Downloads', path: this.deps.downloadDirectory }])
