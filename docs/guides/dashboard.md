@@ -7,6 +7,7 @@ The dashboard works without JavaScript. With JavaScript it adds live progress, l
 
 Paste up to 50 links, one per line, into **Add downloads**.
 
+- Paste magnet links or `.torrent` links, or choose `.torrent` files in "Torrent files". See [Torrents](torrents.md).
 - **Link check.** With a single link, Wayfarer contacts the host, as a real download would, and shows the file name, size and whether it can resume. It runs half a second after you stop typing, or when you press **Check link**. If the host needs a browser, the reason appears before you add anything.
 - **File name.** Filled in from the check. Edit it to rename the file. This works for a single link only.
 - **Save to.** The main download folder, or a location you named in `WAYFARER_LOCATIONS`. Add a **Subfolder** such as `Games/PC` (at most four levels; `..` is refused).

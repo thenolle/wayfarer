@@ -20,9 +20,20 @@ function Invoke-Checked([scriptblock]$Command, [string]$Failure) {
 }
 
 function Update-Path {
-  $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
-  $user = [Environment]::GetEnvironmentVariable('Path', 'User')
-  $env:Path = "$machine;$user;$env:USERPROFILE\.bun\bin"
+  $parts = @(
+    $env:Path,
+    [Environment]::GetEnvironmentVariable('Path', 'Machine'),
+    [Environment]::GetEnvironmentVariable('Path', 'User'),
+    "$env:USERPROFILE\.bun\bin",
+    "$env:ProgramFiles\Git\cmd",
+    "$env:LOCALAPPDATA\Programs\Git\cmd",
+    "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
+  )
+  foreach ($hive in 'HKLM:', 'HKCU:') {
+    $git = (Get-ItemProperty "$hive\SOFTWARE\GitForWindows" -ErrorAction SilentlyContinue).InstallPath
+    if ($git) { $parts += "$git\cmd" }
+  }
+  $env:Path = (($parts | Where-Object { $_ } | ForEach-Object { $_ -split ';' } | Where-Object { $_ } | Select-Object -Unique) -join ';')
 }
 
 function Install-Tool([string]$Command, [string]$WingetId) {

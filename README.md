@@ -23,12 +23,19 @@ Available today:
 - A priority scheduler with download and segment concurrency limits, pause,
   resume, cancel and remove, and a global bandwidth limiter.
 - URL resolvers for direct links, Buzzheavier and MediaFire, with a registry
+<<<<<<< HEAD
 - A one-click installer for Windows, Linux and macOS, and an installable web
   app (manifest, service worker and icons).
 
 Third-party components and their licences are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+=======
+>>>>>>> origin/master
   for adding more.
+- Torrents: magnet links, `.torrent` links and `.torrent` files, downloaded
+  through [aria2](https://aria2.github.io/) with the same queue, priorities,
+  pause, resume and save locations as every other download. See
+  [docs/guides/torrents.md](docs/guides/torrents.md).
 - Network safety: private and reserved addresses are refused by default, and
   every redirect is checked.
 - Crash recovery and graceful shutdown that keep progress consistent with the
@@ -53,11 +60,15 @@ Third-party components and their licences are listed in
 - Hostname checks happen before each request, but the HTTP client resolves
   names again when it connects, so DNS rebinding is not fully prevented. See
   [SECURITY.md](SECURITY.md).
+- Torrents are not seeded, BitTorrent v2-only torrents are not supported, and
+  peer connections are not covered by the network policy. See
+  [docs/guides/torrents.md](docs/guides/torrents.md).
 
 ## Requirements
 
 - Bun 1.4.4 or newer.
 - Git.
+- aria2 (`aria2c`), only for torrents. The Docker image includes it.
 
 ### One-click install
 
@@ -115,27 +126,32 @@ have been syntax-checked but not run on every platform.
 
 All settings are environment variables. Defaults are chosen to be safe.
 
-| Variable                            | Default                      | Description                                                                                                                                                                                    |
-| ----------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `WAYFARER_HOST`                     | `127.0.0.1`                  | Bind address. Non-loopback addresses require an auth token.                                                                                                                                    |
-| `WAYFARER_PORT`                     | `8787`                       | Listening port.                                                                                                                                                                                |
-| `WAYFARER_AUTH_TOKEN`               | unset                        | Shared secret. Required (16+ characters) for non-loopback hosts.                                                                                                                               |
-| `WAYFARER_ALLOWED_HOSTS`            | empty                        | Extra `Host` names (without ports) the API answers to. Required for `0.0.0.0` and `::`.                                                                                                        |
-| `WAYFARER_DATA_DIRECTORY`           | `./data`                     | Database and state directory.                                                                                                                                                                  |
-| `WAYFARER_DOWNLOAD_DIRECTORY`       | `<data directory>/downloads` | Destination for completed files.                                                                                                                                                               |
-| `WAYFARER_CLIENT_DIRECTORY`         | auto-detected                | Directory of the built browser assets. By default Wayfarer looks next to the built server (`dist/client`), then in `dist/client` of a source checkout, then under the working directory.       |
-| `WAYFARER_MAX_SEGMENTS`             | `8`                          | Parallel segments per download (1–64).                                                                                                                                                         |
-| `WAYFARER_MAX_CONCURRENT_DOWNLOADS` | `3`                          | Downloads running at once (1–64).                                                                                                                                                              |
-| `WAYFARER_MAX_CONCURRENT_SEGMENTS`  | `16`                         | Segments running at once across all downloads (1–256).                                                                                                                                         |
-| `WAYFARER_BANDWIDTH_LIMIT`          | `0`                          | Global limit in bytes per second. `0` means unlimited.                                                                                                                                         |
-| `WAYFARER_RETRY_MAX_ATTEMPTS`       | `5`                          | Attempts before a transient failure becomes permanent.                                                                                                                                         |
-| `WAYFARER_RETRY_BASE_DELAY_MS`      | `500`                        | Initial backoff delay.                                                                                                                                                                         |
-| `WAYFARER_RETRY_MAX_DELAY_MS`       | `30000`                      | Backoff ceiling.                                                                                                                                                                               |
-| `WAYFARER_RETRY_JITTER`             | `0.2`                        | Random jitter ratio, 0 to 1.                                                                                                                                                                   |
-| `WAYFARER_REQUEST_TIMEOUT_MS`       | `30000`                      | Per-request timeout.                                                                                                                                                                           |
-| `WAYFARER_PERSIST_INTERVAL_MS`      | `250`                        | Progress batching interval for SQLite writes.                                                                                                                                                  |
-| `WAYFARER_ALLOW_PRIVATE_NETWORKS`   | empty                        | Comma-separated trusted private hosts or ranges.                                                                                                                                               |
-| `WAYFARER_LOCATIONS`                | none                         | Extra save locations as `Name=/absolute/path`, comma separated, for example `Games=D:\Games,Movies=E:\Movies`. The dashboard offers them in "Save to". In Docker, mount each path as a volume. |
+| Variable                               | Default                      | Description                                                                                                                                                                                    |
+| -------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WAYFARER_HOST`                        | `127.0.0.1`                  | Bind address. Non-loopback addresses require an auth token.                                                                                                                                    |
+| `WAYFARER_PORT`                        | `8787`                       | Listening port.                                                                                                                                                                                |
+| `WAYFARER_AUTH_TOKEN`                  | unset                        | Shared secret. Required (16+ characters) for non-loopback hosts.                                                                                                                               |
+| `WAYFARER_ALLOWED_HOSTS`               | empty                        | Extra `Host` names (without ports) the API answers to. Required for `0.0.0.0` and `::`.                                                                                                        |
+| `WAYFARER_DATA_DIRECTORY`              | `./data`                     | Database and state directory.                                                                                                                                                                  |
+| `WAYFARER_DOWNLOAD_DIRECTORY`          | `<data directory>/downloads` | Destination for completed files.                                                                                                                                                               |
+| `WAYFARER_CLIENT_DIRECTORY`            | auto-detected                | Directory of the built browser assets. By default Wayfarer looks next to the built server (`dist/client`), then in `dist/client` of a source checkout, then under the working directory.       |
+| `WAYFARER_MAX_SEGMENTS`                | `8`                          | Parallel segments per download (1–64).                                                                                                                                                         |
+| `WAYFARER_MAX_CONCURRENT_DOWNLOADS`    | `3`                          | Downloads running at once (1–64).                                                                                                                                                              |
+| `WAYFARER_MAX_CONCURRENT_SEGMENTS`     | `16`                         | Segments running at once across all downloads (1–256).                                                                                                                                         |
+| `WAYFARER_BANDWIDTH_LIMIT`             | `0`                          | Global limit in bytes per second. `0` means unlimited.                                                                                                                                         |
+| `WAYFARER_RETRY_MAX_ATTEMPTS`          | `5`                          | Attempts before a transient failure becomes permanent.                                                                                                                                         |
+| `WAYFARER_RETRY_BASE_DELAY_MS`         | `500`                        | Initial backoff delay.                                                                                                                                                                         |
+| `WAYFARER_RETRY_MAX_DELAY_MS`          | `30000`                      | Backoff ceiling.                                                                                                                                                                               |
+| `WAYFARER_RETRY_JITTER`                | `0.2`                        | Random jitter ratio, 0 to 1.                                                                                                                                                                   |
+| `WAYFARER_REQUEST_TIMEOUT_MS`          | `30000`                      | Per-request timeout.                                                                                                                                                                           |
+| `WAYFARER_PERSIST_INTERVAL_MS`         | `250`                        | Progress batching interval for SQLite writes.                                                                                                                                                  |
+| `WAYFARER_ALLOW_PRIVATE_NETWORKS`      | empty                        | Comma-separated trusted private hosts or ranges.                                                                                                                                               |
+| `WAYFARER_LOCATIONS`                   | none                         | Extra save locations as `Name=/absolute/path`, comma separated, for example `Games=D:\Games,Movies=E:\Movies`. The dashboard offers them in "Save to". In Docker, mount each path as a volume. |
+| `WAYFARER_ARIA2_PATH`                  | `aria2c`                     | The aria2 program used for torrents.                                                                                                                                                           |
+| `WAYFARER_TORRENT_MAX_PEERS`           | `100`                        | Peers per torrent (1–1000).                                                                                                                                                                    |
+| `WAYFARER_TORRENT_TRACKERS`            | empty                        | Extra trackers, comma separated.                                                                                                                                                               |
+| `WAYFARER_TORRENT_LISTEN_PORT`         | aria2 default                | Port or range for incoming peers.                                                                                                                                                              |
+| `WAYFARER_TORRENT_METADATA_TIMEOUT_MS` | `120000`                     | How long a magnet link may wait for its details.                                                                                                                                               |
 
 ## Architecture
 

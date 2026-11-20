@@ -31,6 +31,10 @@ Pages send a Content-Security-Policy that limits scripts, styles, connections an
 - Served files are attachments with `nosniff` and `Content-Security-Policy: sandbox`.
 - Save locations are named by you; subfolders cannot contain `..`.
 
+## Torrents
+
+Torrent peers are chosen by the swarm, and aria2 connects to them directly. The network policy and `WAYFARER_ALLOW_PRIVATE_NETWORKS` apply to `.torrent` links that Wayfarer fetches, but not to peer connections. aria2's control port listens only on `127.0.0.1`, on a random port, and requires a random secret that is never written to disk or shown. Stored `.torrent` files and aria2's log live under `<data directory>/torrents`. Treat them like the rest of the data directory, because a `.torrent` file from a private tracker contains your personal announce URL.
+
 ## Known limits
 
 - **DNS rebinding of downloads.** The destination check resolves a name, but the HTTP client resolves it again when it connects. Block private networks at the network level if you need a strong guarantee. See [Resolvers and networking](architecture/resolvers-and-networking.md).
