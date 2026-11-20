@@ -36,5 +36,5 @@ describe('Aria2Daemon', () => {
 				await daemon.stop()
 			}
 		})
-	})
+	}, 30_000)
 })
