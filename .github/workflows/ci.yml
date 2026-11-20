@@ -16,6 +16,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  installers:
+    name: Installer scripts
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Parse the PowerShell scripts
+        shell: pwsh
+        run: |
+          foreach ($file in 'install.ps1', 'uninstall.ps1') {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile("deployment/install/$file", [ref]$null, [ref]$errors) | Out-Null
+            if ($errors) { $errors | Out-Host; exit 1 }
+          }
+      - name: Check the shell scripts
+        shell: bash
+        run: |
+          bash -n deployment/install/install.sh
+          bash -n deployment/install/uninstall.sh
+
   quality:
     name: Quality checks
     runs-on: ubuntu-latest

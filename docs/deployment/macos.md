@@ -3,6 +3,8 @@
 This sets up a per-user launch agent: it starts when you log in and restarts if
 the process fails.
 
+> Prefer the [one-click installer](../guides/installer.md). It registers a sign-in task for you, without administrator rights.
+
 ```bash
 bun install --frozen-lockfile
 bun run build
