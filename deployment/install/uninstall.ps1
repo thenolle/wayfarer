@@ -18,7 +18,7 @@ if ($Purge) {
   Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $InstallDir
   Write-Host 'Removed Wayfarer, its settings and its database. Downloaded files were not touched.'
 } else {
-  Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $InstallDir 'app')
+	Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $InstallDir 'wayfarer.png'), (Join-Path $InstallDir 'wayfarer.ico'), (Join-Path $InstallDir 'wayfarer-hidden.vbs')
   Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $InstallDir 'wayfarer.png'), (Join-Path $InstallDir 'wayfarer.ico')
   Write-Host "Removed Wayfarer. Settings and the database stay in $InstallDir. Use -Purge to remove them too."
 }
