@@ -17,6 +17,7 @@ import { registerLocationRoutes } from './api/locations'
 import { registerQueueRoutes } from './api/queue'
 import { registerStatsRoutes } from './api/stats'
 import { registerTransferRoutes } from './api/transfer'
+import { registerPwaRoutes } from './pwa-routes'
 
 /**
  * Builds the HTTP application.
@@ -41,6 +42,7 @@ export function createHttpApp(runtime: ApiRuntime, sessions: SessionResolver = c
 	app.use(assetContentTypes())
 	app.use(staticFiles({ directory: runtime.config.clientDirectory, prefix: '/assets' }))
 	app.get('/favicon.ico', () => redirect('/assets/favicon.svg', 302))
+	registerPwaRoutes(app)
 	app.get('/api/health', () => json({ data: { status: 'ok' } }))
 	registerDownloadRoutes(app, runtime)
 	registerSettingsRoutes(app, runtime)

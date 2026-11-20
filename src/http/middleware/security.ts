@@ -10,7 +10,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 const HEALTH_PATH = '/api/health'
 const API_PREFIX = '/api/'
 const API_CSP = "default-src 'none'; frame-ancestors 'none'"
-const PAGE_CSP = "default-src 'none'; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self'; connect-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+const PAGE_CSP = "default-src 'none'; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
 
 /**
  * The host name in a `Host` header, lower-cased, or null when it is malformed.

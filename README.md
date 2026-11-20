@@ -23,6 +23,8 @@ Available today:
 - A priority scheduler with download and segment concurrency limits, pause,
   resume, cancel and remove, and a global bandwidth limiter.
 - URL resolvers for direct links, Buzzheavier and MediaFire, with a registry
+- A one-click installer for Windows, Linux and macOS, and an installable web
+  app (manifest, service worker and icons).
 
 Third-party components and their licences are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
@@ -56,6 +58,22 @@ Third-party components and their licences are listed in
 
 - Bun 1.4.4 or newer.
 - Git.
+
+### One-click install
+
+Windows (PowerShell):
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/thenolle/wayfarer/master/deployment/install/install.ps1)))
+```
+
+Linux and macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/thenolle/wayfarer/master/deployment/install/install.sh | bash
+```
+
+This installs the requirements, builds Wayfarer, starts it with your session and adds a shortcut that opens the dashboard as an app. See [docs/guides/installer.md](docs/guides/installer.md).
 
 ## Getting started
 

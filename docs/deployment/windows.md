@@ -4,6 +4,8 @@ Wayfarer runs on Windows as a scheduled task that starts at boot. Windows
 services need a program that speaks the service protocol, which Bun does not,
 so Task Scheduler is the native mechanism used here.
 
+> Prefer the [one-click installer](../guides/installer.md). It registers a sign-in task for you, without administrator rights.
+
 ## Install
 
 1. Install [Bun](https://bun.sh/) and make sure `bun` is on the `PATH`.

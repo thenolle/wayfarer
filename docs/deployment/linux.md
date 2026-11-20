@@ -3,6 +3,8 @@
 These steps assume Bun is installed system-wide at `/usr/local/bin/bun`. Check
 with `which bun` and adjust `ExecStart` in the unit file if yours differs.
 
+> Prefer the [one-click installer](../guides/installer.md). It registers a sign-in task for you, without administrator rights.
+
 ```bash
 sudo useradd --system --home-dir /var/lib/wayfarer --shell /usr/sbin/nologin wayfarer
 
