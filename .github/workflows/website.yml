@@ -39,7 +39,7 @@ jobs:
       - name: Read the Pages settings
         id: pages
         if: github.ref == 'refs/heads/master'
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Install dependencies
         working-directory: website
         run: bun install --frozen-lockfile
